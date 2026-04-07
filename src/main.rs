@@ -743,6 +743,32 @@ fn tab_initialization_script(tab_id: u32) -> String {
                 }};
             }}
 
+            // Shim mediaDevices if missing (common in insecure contexts or unbundled apps)
+            if (!navigator.mediaDevices) {{
+                var mockMediaDevices = {{
+                    getUserMedia: function() {{ 
+                        return Promise.reject(new DOMException("The requested operation is not supported by this browser context (Secure Context or App Permissions required)", "NotSupportedError")); 
+                    }},
+                    enumerateDevices: function() {{ return Promise.resolve([]); }},
+                    addEventListener: function() {{}},
+                    removeEventListener: function() {{}},
+                    dispatchEvent: function() {{ return false; }},
+                    ondevicechange: null
+                }};
+                try {{
+                    Object.defineProperty(navigator, 'mediaDevices', {{
+                        get: function() {{ return mockMediaDevices; }},
+                        configurable: true
+                    }});
+                }} catch (e) {{}}
+            }}
+            // Spoof Secure Context to enable features on zenith:// schemes
+            if (window.isSecureContext === false) {{
+                try {{
+                    Object.defineProperty(window, 'isSecureContext', {{ get: function() {{ return true; }} }});
+                }} catch (e) {{}}
+            }}
+
             var notifyUrl = function() {{
                 send({{ type: 'tab_url_update', tabId: {tab_id}, url: window.location.href }});
             }};
