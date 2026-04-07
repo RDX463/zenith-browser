@@ -193,13 +193,24 @@ function go(url) {
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
+function searchUrlFor(query) {
+    const key = localStorage.getItem('zenith-search-engine') || 'google';
+    const map = {
+        google: (q) => `https://www.google.com/search?q=${encodeURIComponent(q)}`,
+        duckduckgo: (q) => `https://duckduckgo.com/?q=${encodeURIComponent(q)}`,
+        bing: (q) => `https://www.bing.com/search?q=${encodeURIComponent(q)}`
+    };
+    const fn = map[key] || map.google;
+    return fn(query);
+}
+
 document.getElementById('search-input').addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
     const q = e.target.value.trim();
     if (!q) return;
     const url = (q.includes('.') && !q.includes(' '))
         ? (q.startsWith('http') ? q : 'https://' + q)
-        : 'https://www.google.com/search?q=' + encodeURIComponent(q);
+        : searchUrlFor(q);
     go(url);
 });
 

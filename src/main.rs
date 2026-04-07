@@ -148,6 +148,7 @@ fn main() {
     let ui_html = include_str!("ui/ui.html");
     let ui_css = include_str!("ui/ui.css");
     let home_html = include_bytes!("ui/home.html");
+    let settings_html = include_bytes!("ui/settings.html");
     let http_client = reqwest::blocking::Client::builder()
         .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
         .redirect(reqwest::redirect::Policy::limited(10))
@@ -352,6 +353,12 @@ fn main() {
                 return Response::builder()
                     .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
                     .body(Cow::Borrowed(home_html as &[u8]))
+                    .unwrap();
+            }
+            if host == "assets" && (path == "/settings" || path == "/settings/") {
+                return Response::builder()
+                    .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
+                    .body(Cow::Borrowed(settings_html as &[u8]))
                     .unwrap();
             }
 
