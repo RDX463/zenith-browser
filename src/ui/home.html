@@ -214,7 +214,7 @@ function go(url) {
 function searchUrlFor(query) {
     const key = localStorage.getItem('zenith-search-engine') || 'google';
     const map = {
-        google: (q) => `https://www.google.com/search?q=${encodeURIComponent(q)}`,
+        google: (q) => `https://www.google.com/search?igu=1&q=${encodeURIComponent(q)}`,
         duckduckgo: (q) => `https://duckduckgo.com/?q=${encodeURIComponent(q)}`,
         bing: (q) => `https://www.bing.com/search?q=${encodeURIComponent(q)}`
     };

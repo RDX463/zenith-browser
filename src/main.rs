@@ -155,7 +155,7 @@ fn normalize_user_input_url(raw: &str) -> String {
     }
 
     let q = utf8_percent_encode(trimmed, NON_ALPHANUMERIC).to_string();
-    format!("https://www.google.com/search?q={q}")
+    format!("https://www.google.com/search?igu=1&q={q}")
 }
 
 fn is_auth_host(host: &str) -> bool {
@@ -990,7 +990,8 @@ mod tests {
     #[test]
     fn normalize_user_input_uses_google_for_queries() {
         let out = normalize_user_input_url("rust browser project");
-        assert!(out.starts_with("https://www.google.com/search?q="));
+        assert!(out.starts_with("https://www.google.com/search?"));
+        assert!(out.contains("q=rust%20browser%20project"));
     }
 
     #[test]
