@@ -3,198 +3,247 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zenith Home</title>
+    <title>New Tab</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0f1115;
-            --accent: #818CF8;
-            --text-main: #f3f4f6;
-            --text-dim: #9ca3af;
-            --glass: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.08);
+            --bg:       #0d0d11;
+            --card:     rgba(255,255,255,0.04);
+            --border:   rgba(255,255,255,0.08);
+            --accent:   #818cf8;
+            --text:     #f0f0f2;
+            --muted:    #6b6b78;
+            --hover-bg: rgba(255,255,255,0.07);
+            --focus-ring: rgba(129,140,248,0.15);
+            --focus-shadow: 0 14px 40px rgba(0,0,0,0.3);
         }
-
-        body {
-            margin: 0;
-            padding: 0;
-            background: var(--bg);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
+        [data-theme="light"] {
+            --bg:       #f6f7fb;
+            --card:     rgba(255,255,255,0.8);
+            --border:   rgba(15,23,42,0.12);
+            --accent:   #4f46e5;
+            --text:     #151826;
+            --muted:    #5f6475;
+            --hover-bg: rgba(79,70,229,0.08);
+            --focus-ring: rgba(79,70,229,0.14);
+            --focus-shadow: 0 12px 30px rgba(12,18,38,0.1);
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            width: 100%; height: 100%; overflow: hidden;
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg); color: var(--text);
             -webkit-font-smoothing: antialiased;
         }
+        body { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
-        .container {
-            text-align: center;
-            max-width: 600px;
-            width: 90%;
-            animation: fadeIn 1.2s ease-out;
+        /* Clock */
+        .clock-wrap {
+            position: absolute; top: 28px; left: 50%; transform: translateX(-50%);
+            text-align: center; pointer-events: none;
         }
+        .clock-time { font-size: 3rem; font-weight: 300; letter-spacing: -2px; color: var(--text); opacity: 0.9; }
+        .clock-date { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        /* Main container */
+        .container { width: 100%; max-width: 620px; padding: 0 24px; animation: fadeUp 0.5s ease; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* Logo */
         .logo {
-            font-size: 3rem;
-            font-weight: 600;
-            margin-bottom: 2rem;
-            background: linear-gradient(135deg, #fff 0%, #818CF8 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -1px;
+            font-size: 2rem; font-weight: 600; letter-spacing: -1px;
+            text-align: center; margin-bottom: 28px;
+            background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
         }
 
-        .search-container {
-            position: relative;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 12px 20px;
-            display: flex;
-            align-items: center;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        /* Search */
+        .search-box {
+            display: flex; align-items: center; gap: 10px;
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 14px 18px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            backdrop-filter: blur(12px);
         }
-
-        .search-container:focus-within {
+        .search-box:focus-within {
             border-color: var(--accent);
-            box-shadow: 0 15px 50px rgba(129, 140, 248, 0.15), 0 0 0 4px rgba(129, 140, 248, 0.1);
-            transform: translateY(-2px);
+            box-shadow: 0 0 0 3px var(--focus-ring), var(--focus-shadow);
         }
-
-        .search-icon {
-            width: 20px;
-            height: 20px;
-            color: var(--text-dim);
-            margin-right: 12px;
+        .search-box svg { width: 18px; height: 18px; color: var(--muted); flex-shrink: 0; }
+        .search-box input {
+            flex: 1; background: none; border: none; outline: none;
+            color: var(--text); font-size: 1rem; font-family: inherit;
         }
+        .search-box input::placeholder { color: var(--muted); }
 
-        input {
-            background: transparent;
-            border: none;
-            color: inherit;
-            font-size: 1.1rem;
-            width: 100%;
-            outline: none;
-            font-family: inherit;
-        }
-
-        input::placeholder {
-            color: var(--text-dim);
-        }
-
-        .shortcuts {
-            margin-top: 3rem;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1.5rem;
-        }
-
+        /* Shortcuts */
+        .shortcuts-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 28px 0 14px; }
+        .shortcuts-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
         .shortcut {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 8px; cursor: pointer; text-decoration: none;
+            padding: 6px 4px; border-radius: 10px; transition: background 0.15s;
+        }
+        .shortcut:hover { background: var(--hover-bg); }
+        .shortcut:hover .s-icon { border-color: var(--accent); transform: translateY(-3px); }
+        .s-icon {
+            width: 52px; height: 52px; border-radius: 14px;
+            background: var(--card); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; transition: all 0.2s; overflow: hidden;
+        }
+        .s-icon img { width: 28px; height: 28px; border-radius: 4px; }
+        .s-label { font-size: 12px; font-weight: 500; color: var(--muted); }
+        .shortcut:hover .s-label { color: var(--text); }
+
+        /* Recent sites */
+        .recents { margin-top: 26px; }
+        .recents-grid { display: flex; flex-direction: column; gap: 4px; }
+        .recent-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 10px; border-radius: 8px; cursor: pointer; transition: background 0.15s;
             text-decoration: none;
-            color: var(--text-dim);
-            transition: all 0.2s;
-            cursor: pointer;
         }
-
-        .shortcut:hover {
-            color: var(--text-main);
-            transform: translateY(-4px);
-        }
-
-        .shortcut-icon {
-            width: 48px;
-            height: 48px;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            transition: all 0.2s;
-        }
-
-        .shortcut:hover .shortcut-icon {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-
-        .shortcut-label {
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-
-        .clock {
-            position: absolute;
-            top: 40px;
-            right: 40px;
-            font-size: 1.5rem;
-            font-weight: 500;
-            color: var(--text-dim);
-            opacity: 0.6;
-        }
+        .recent-item:hover { background: var(--hover-bg); }
+        .recent-favicon { width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0; }
+        .recent-url { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .recent-title { font-size: 13px; color: var(--text); margin-left: auto; flex-shrink: 0; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #recents-section { display: none; }
     </style>
 </head>
 <body>
-    <div class="clock" id="clock">12:00</div>
 
-    <div class="container">
-        <div class="logo">Zenith</div>
-        
-        <form action="https://www.google.com/search" method="GET">
-            <div class="search-container">
-                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <input type="text" name="q" placeholder="Search the web..." autofocus autocomplete="off">
-            </div>
-        </form>
+<div class="clock-wrap">
+    <div class="clock-time" id="clock-time">00:00</div>
+    <div class="clock-date" id="clock-date"></div>
+</div>
 
-        <div class="shortcuts">
-            <a class="shortcut" href="https://github.com">
-                <div class="shortcut-icon">GH</div>
-                <div class="shortcut-label">GitHub</div>
-            </a>
-            <a class="shortcut" href="https://youtube.com">
-                <div class="shortcut-icon">YT</div>
-                <div class="shortcut-label">YouTube</div>
-            </a>
-            <a class="shortcut" href="https://reddit.com">
-                <div class="shortcut-icon">RD</div>
-                <div class="shortcut-label">Reddit</div>
-            </a>
-            <a class="shortcut" href="https://twitter.com">
-                <div class="shortcut-icon">TW</div>
-                <div class="shortcut-label">Twitter</div>
-            </a>
+<div class="container">
+    <div class="logo">Zenith</div>
+
+    <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input id="search-input" type="text" placeholder="Search or go to a URL…" autofocus autocomplete="off" spellcheck="false">
+    </div>
+
+    <div class="shortcuts-label">Quick Links</div>
+    <div class="shortcuts-grid" id="shortcuts-grid">
+        <div class="shortcut" data-url="https://github.com">
+            <div class="s-icon"><img src="https://www.google.com/s2/favicons?domain=github.com&sz=64" alt="GitHub" onerror="this.parentElement.textContent='GH'"></div>
+            <div class="s-label">GitHub</div>
+        </div>
+        <div class="shortcut" data-url="https://youtube.com">
+            <div class="s-icon"><img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" alt="YouTube" onerror="this.parentElement.textContent='YT'"></div>
+            <div class="s-label">YouTube</div>
+        </div>
+        <div class="shortcut" data-url="https://reddit.com">
+            <div class="s-icon"><img src="https://www.google.com/s2/favicons?domain=reddit.com&sz=64" alt="Reddit" onerror="this.parentElement.textContent='RD'"></div>
+            <div class="s-label">Reddit</div>
+        </div>
+        <div class="shortcut" data-url="https://news.ycombinator.com">
+            <div class="s-icon"><img src="https://www.google.com/s2/favicons?domain=news.ycombinator.com&sz=64" alt="HN" onerror="this.parentElement.textContent='HN'"></div>
+            <div class="s-label">Hacker News</div>
+        </div>
+        <div class="shortcut" data-url="https://x.com">
+            <div class="s-icon"><img src="https://www.google.com/s2/favicons?domain=x.com&sz=64" alt="X" onerror="this.parentElement.textContent='X'"></div>
+            <div class="s-label">X / Twitter</div>
+        </div>
+        <div class="shortcut" data-url="https://linear.app">
+            <div class="s-icon"><img src="https://www.google.com/s2/favicons?domain=linear.app&sz=64" alt="Linear" onerror="this.parentElement.textContent='LN'"></div>
+            <div class="s-label">Linear</div>
+        </div>
+        <div class="shortcut" data-url="https://vercel.com">
+            <div class="s-icon"><img src="https://www.google.com/s2/favicons?domain=vercel.com&sz=64" alt="Vercel" onerror="this.parentElement.textContent='VC'"></div>
+            <div class="s-label">Vercel</div>
+        </div>
+        <div class="shortcut" data-url="https://docs.rs">
+            <div class="s-icon"><img src="https://www.google.com/s2/favicons?domain=docs.rs&sz=64" alt="docs.rs" onerror="this.parentElement.textContent='RS'"></div>
+            <div class="s-label">docs.rs</div>
         </div>
     </div>
 
-    <script>
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('clock').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-    </script>
+    <div class="recents" id="recents-section">
+        <div class="shortcuts-label">Recently Visited</div>
+        <div class="recents-grid" id="recents-grid"></div>
+    </div>
+</div>
+
+<script>
+// ── Clock ─────────────────────────────────────────────────────────────────────
+function tick() {
+    const now = new Date();
+    document.getElementById('clock-time').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('clock-date').textContent = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+}
+tick(); setInterval(tick, 1000);
+
+// ── Theme ─────────────────────────────────────────────────────────────────────
+function applyTheme(theme) {
+    const mode = (theme === 'light') ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', mode);
+}
+applyTheme(localStorage.getItem('zenith-theme') || 'dark');
+
+// ── Navigate helper ───────────────────────────────────────────────────────────
+function go(url) {
+    window.parent.postMessage({ type: 'navigate', url }, '*');
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+document.getElementById('search-input').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const q = e.target.value.trim();
+    if (!q) return;
+    const url = (q.includes('.') && !q.includes(' '))
+        ? (q.startsWith('http') ? q : 'https://' + q)
+        : 'https://www.google.com/search?q=' + encodeURIComponent(q);
+    go(url);
+});
+
+// ── Shortcuts ─────────────────────────────────────────────────────────────────
+document.querySelectorAll('.shortcut[data-url]').forEach(el => {
+    el.addEventListener('click', () => go(el.dataset.url));
+});
+
+// ── Recent sites (sent by parent shell) ──────────────────────────────────────
+window.addEventListener('message', e => {
+    if (!e.data || typeof e.data !== 'object') return;
+    if (e.data.type === 'theme') {
+        applyTheme(e.data.theme);
+        return;
+    }
+
+    if (!e.data || e.data.type !== 'recent-sites') return;
+    const sites = e.data.sites || [];
+    if (!sites.length) return;
+
+    const section = document.getElementById('recents-section');
+    const grid    = document.getElementById('recents-grid');
+    section.style.display = 'block';
+    grid.innerHTML = '';
+
+    sites.forEach(site => {
+        const item = document.createElement('div');
+        item.className = 'recent-item';
+        item.title = site.url;
+
+        let host = site.url;
+        try { host = new URL(site.url).hostname; } catch {}
+
+        item.innerHTML = `
+            <img class="recent-favicon" src="https://www.google.com/s2/favicons?domain=${host}&sz=32" alt="">
+            <span class="recent-url">${host}</span>
+            <span class="recent-title">${(site.title || host).slice(0, 40)}</span>`;
+        item.addEventListener('click', () => go(site.url));
+        grid.appendChild(item);
+    });
+});
+
+// Tell parent shell we're ready (so it can send recent-sites)
+window.parent.postMessage({ type: 'home-ready' }, '*');
+</script>
 </body>
 </html>
