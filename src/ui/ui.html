@@ -28,6 +28,9 @@
         <div class="address-bar-wrap" id="address-bar-wrap">
             <svg id="search-icon" class="addr-icon search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" id="url-input" placeholder="Search or enter URL" spellcheck="false" autocomplete="off" autofocus>
+            <button id="bookmark-btn" class="addr-btn" title="Bookmark (⌘D)">
+                <svg id="bookmark-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </button>
         </div>
         <button id="settings-btn" class="icon-btn" title="Menu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
@@ -70,6 +73,8 @@ const findPrevBtn = document.getElementById('find-prev');
 const findCloseBtn = document.getElementById('find-close');
 const fwdBtn    = document.getElementById('forward-btn');
 const reloadBtn = document.getElementById('reload-btn');
+const bookmarkBtn = document.getElementById('bookmark-btn');
+const bookmarkIcon = document.getElementById('bookmark-icon');
 
 const HOME_URL = 'zenith://assets/home';
 const SETTINGS_URL = 'zenith://assets/settings';
@@ -174,8 +179,15 @@ function updateAddressBar() {
     const tab = tabs.find(t => t.id === activeId);
     if (!tab || isHomeUrl(tab.url)) {
         urlInput.value = '';
+        bookmarkBtn.style.display = 'none';
     } else {
         urlInput.value = tab.url || '';
+        bookmarkBtn.style.display = 'flex';
+        if (tab.isBookmarked) {
+            bookmarkBtn.classList.add('active');
+        } else {
+            bookmarkBtn.classList.remove('active');
+        }
     }
 }
 
@@ -287,6 +299,10 @@ urlInput.onkeydown = (e) => {
 urlInput.onfocus = () => setTimeout(() => urlInput.select(), 10);
 
 newTabBtn.onclick = () => createTab();
+bookmarkBtn.onclick = (e) => {
+    e.stopPropagation();
+    bookmarkActiveTab();
+};
 settBtn.onclick = (e) => { 
     e.stopPropagation(); 
     const rect = settBtn.getBoundingClientRect();

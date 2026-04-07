@@ -150,6 +150,7 @@ struct ChromeTabState {
     id: u32,
     title: String,
     url: String,
+    is_bookmarked: bool,
 }
 
 #[derive(Serialize)]
@@ -371,38 +372,30 @@ fn upsert_recent_site(recent_sites: &mut Vec<RecentSite>, raw_url: &str, raw_tit
     changed
 }
 
-fn upsert_bookmark(bookmarks: &mut Vec<BookmarkSite>, raw_url: &str, raw_title: &str) -> bool {
+fn toggle_bookmark(bookmarks: &mut Vec<BookmarkSite>, raw_url: &str, raw_title: &str) -> (bool, bool) {
     if !should_track_recent_site(raw_url) {
-        return false;
+        return (false, false);
     }
 
     let title = resolved_tab_title(raw_title, raw_url);
-    let mut changed = false;
-
+    
     if let Some(existing) = bookmarks.iter().position(|s| s.url == raw_url) {
-        let item = bookmarks.remove(existing);
-        if existing != 0 || item.title != title {
-            changed = true;
-        }
+        bookmarks.remove(existing);
+        (true, false) // Changed, was_removed
     } else {
-        changed = true;
+        bookmarks.insert(
+            0,
+            BookmarkSite {
+                url: raw_url.to_string(),
+                title,
+            },
+        );
+        const MAX_BOOKMARKS: usize = 50;
+        if bookmarks.len() > MAX_BOOKMARKS {
+            bookmarks.truncate(MAX_BOOKMARKS);
+        }
+        (true, true) // Changed, was_added
     }
-
-    bookmarks.insert(
-        0,
-        BookmarkSite {
-            url: raw_url.to_string(),
-            title,
-        },
-    );
-
-    const MAX_BOOKMARKS: usize = 50;
-    if bookmarks.len() > MAX_BOOKMARKS {
-        bookmarks.truncate(MAX_BOOKMARKS);
-        changed = true;
-    }
-
-    changed
 }
 
 fn record_download_started(downloads: &mut Vec<DownloadEntry>, url: &str, path: &str) {
@@ -920,14 +913,18 @@ fn apply_tab_bounds(tabs: &[BrowserTab], bounds: Rect) {
     }
 }
 
-fn sync_chrome_state(chrome: &WebView, tabs: &[BrowserTab], active_tab_id: Option<u32>) {
+fn sync_chrome_state(chrome: &WebView, tabs: &[BrowserTab], active_tab_id: Option<u32>, bookmarks: &[BookmarkSite]) {
     let state = ChromeState {
         tabs: tabs
             .iter()
-            .map(|t| ChromeTabState {
-                id: t.id,
-                title: t.title.clone(),
-                url: t.url.clone(),
+            .map(|t| {
+                let is_bookmarked = bookmarks.iter().any(|b| b.url == t.url);
+                ChromeTabState {
+                    id: t.id,
+                    title: t.title.clone(),
+                    url: t.url.clone(),
+                    is_bookmarked,
+                }
             })
             .collect(),
         active_id: active_tab_id,
@@ -1403,7 +1400,7 @@ fn main() {
         match event {
             Event::UserEvent(UserEvent::ChromeReady) => {
                 chrome_ready = true;
-                sync_chrome_state(&chrome_webview, &tabs, active_tab_id);
+                sync_chrome_state(&chrome_webview, &tabs, active_tab_id, &bookmarks);
                 for tab in &tabs {
                     sync_recent_sites_to_tab(tab, &recent_sites);
                     sync_bookmarks_to_tab(tab, &bookmarks);
@@ -1437,7 +1434,7 @@ fn main() {
                     next_tab_id += 1;
                     apply_tab_visibility(&tabs, active_tab_id);
                     if chrome_ready {
-                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id);
+                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id, &bookmarks);
                     }
                 }
             }
@@ -1446,7 +1443,7 @@ fn main() {
                     active_tab_id = Some(tab_id);
                     apply_tab_visibility(&tabs, active_tab_id);
                     if chrome_ready {
-                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id);
+                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id, &bookmarks);
                     }
                 }
             }
@@ -1468,7 +1465,7 @@ fn main() {
 
                     apply_tab_visibility(&tabs, active_tab_id);
                     if chrome_ready {
-                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id);
+                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id, &bookmarks);
                     }
                 }
             }
@@ -1486,7 +1483,7 @@ fn main() {
                             tab.title = fallback_title_for_url(&next_url);
                             let _ = tab.webview.load_url(&next_url);
                             if chrome_ready {
-                                sync_chrome_state(&chrome_webview, &tabs, active_tab_id);
+                                sync_chrome_state(&chrome_webview, &tabs, active_tab_id, &bookmarks);
                             }
                         }
                     }
@@ -1518,7 +1515,7 @@ fn main() {
                     active_tab_id = Some(existing_id);
                     apply_tab_visibility(&tabs, active_tab_id);
                     if chrome_ready {
-                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id);
+                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id, &bookmarks);
                     }
                 } else {
                     let _ = proxy.send_event(UserEvent::NewTab {
@@ -1536,7 +1533,7 @@ fn main() {
                     active_tab_id = Some(existing_id);
                     apply_tab_visibility(&tabs, active_tab_id);
                     if chrome_ready {
-                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id);
+                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id, &bookmarks);
                     }
                 } else {
                     let _ = proxy.send_event(UserEvent::NewTab {
@@ -1554,7 +1551,7 @@ fn main() {
                     active_tab_id = Some(existing_id);
                     apply_tab_visibility(&tabs, active_tab_id);
                     if chrome_ready {
-                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id);
+                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id, &bookmarks);
                     }
                 } else {
                     let _ = proxy.send_event(UserEvent::NewTab {
@@ -1569,11 +1566,17 @@ fn main() {
                 {
                     let bookmark_url = tab.url.clone();
                     let bookmark_title = tab.title.clone();
-                    if upsert_bookmark(&mut bookmarks, &bookmark_url, &bookmark_title) {
+                    let (changed, was_added) = toggle_bookmark(&mut bookmarks, &bookmark_url, &bookmark_title);
+                    if changed {
                         save_bookmarks(&bookmarks_path, &bookmarks);
+                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id, &bookmarks);
                         for t in &tabs {
                             sync_bookmarks_to_tab(t, &bookmarks);
                         }
+                        
+                        let msg = if was_added { "Added Bookmark" } else { "Bookmark Removed" };
+                        let toast_type = if was_added { "success" } else { "info" };
+                        let _ = chrome_webview.evaluate_script(&format!("if (window.showToast) window.showToast({}, '{}');", serde_json::to_string(&msg).unwrap(), toast_type));
                     }
                 }
             }
@@ -1726,7 +1729,7 @@ fn main() {
                     }
 
                     if chrome_ready {
-                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id);
+                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id, &bookmarks);
                     }
                 }
             }
@@ -1760,7 +1763,7 @@ fn main() {
                     }
 
                     if chrome_ready {
-                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id);
+                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id, &bookmarks);
                     }
                 }
             }

@@ -137,6 +137,18 @@ body {
 }
 #url-input::placeholder { color: var(--text-muted); }
 #url-input:focus { text-align: left; }
+.addr-btn {
+    width: 28px; height: 28px; border: none; background: transparent;
+    color: var(--text-muted); cursor: pointer; display: flex;
+    align-items: center; justify-content: center; border-radius: 6px;
+    transition: background 0.1s, color 0.1s, transform 0.1s;
+    margin-left: 2px;
+}
+.addr-btn:hover { background: var(--btn-hover); color: var(--text-primary); }
+.addr-btn svg { width: 16px; height: 16px; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.addr-btn:active svg { transform: scale(0.85); }
+.addr-btn.active { color: #fbbf24; }
+.addr-btn.active svg { fill: currentColor; }
 
 /* ── Content area ────────────────────────────────────────────────────────── */
 #tabs-content { flex: 1; position: relative; background: #15161a; }
