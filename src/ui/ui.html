@@ -36,18 +36,13 @@
 </div>
 
 <div id="settings-menu" class="settings-menu hidden">
-    <div class="menu-section-label">Navigation</div>
-    <div class="menu-item" id="m-new-tab"><span class="menu-item-icon">＋</span>New Tab<span class="menu-kbd">⌘T</span></div>
-    <div class="menu-item" id="m-close-tab"><span class="menu-item-icon">✕</span>Close Tab<span class="menu-kbd">⌘W</span></div>
-    <div class="menu-item" id="m-settings"><span class="menu-item-icon">⚙</span>Settings<span class="menu-kbd">⌘,</span></div>
-    <div class="menu-divider"></div>
-    <div class="menu-section-label">Library</div>
-    <div class="menu-item" id="m-bookmark"><span class="menu-item-icon">★</span>Bookmark This Tab<span class="menu-kbd">⌘D</span></div>
-    <div class="menu-item" id="m-history"><span class="menu-item-icon">🕘</span>History<span class="menu-kbd">⌘Y</span></div>
-    <div class="menu-item" id="m-downloads"><span class="menu-item-icon">↓</span>Downloads<span class="menu-kbd">⌘J</span></div>
-    <div class="menu-divider"></div>
-    <div class="menu-section-label">Appearance</div>
-    <div class="menu-item" id="m-theme"><span class="menu-item-icon">◑</span><span id="theme-label">Light Mode</span></div>
+    <div class="menu-item" id="m-new-tab">New Tab<span class="menu-kbd">⌘T</span></div>
+    <div class="menu-item" id="m-bookmark">Bookmark<span class="menu-kbd">⌘D</span></div>
+    <div class="menu-item" id="m-history">History<span class="menu-kbd">⌘Y</span></div>
+    <div class="menu-item" id="m-downloads">Downloads<span class="menu-kbd">⌘J</span></div>
+    <div class="menu-item" id="m-theme"><span id="theme-label">Light Mode</span></div>
+    <div class="menu-item" id="m-settings">Settings<span class="menu-kbd">⌘,</span></div>
+    <div class="menu-item" id="m-close-tab" style="color:#ef4444;">Close<span class="menu-kbd">⌘W</span></div>
 </div>
 
 <script>
@@ -216,18 +211,25 @@ function closeActiveTab() {
     send({ type: 'close_tab', tabId: activeId });
 }
 
+function closeMenu() {
+    if (!settMenu.classList.contains('hidden')) {
+        settMenu.classList.add('hidden');
+        send({ type: 'toggle_menu', open: false });
+    }
+}
+
 function openSettingsTab() {
     send({ type: 'open_settings_tab' });
 }
 
 function openHistoryTab() {
     send({ type: 'open_history_tab' });
-    settMenu.classList.add('hidden');
+    closeMenu();
 }
 
 function openDownloadsTab() {
     send({ type: 'open_downloads_tab' });
-    settMenu.classList.add('hidden');
+    closeMenu();
 }
 
 function sendAction(action) {
@@ -238,7 +240,7 @@ function sendAction(action) {
 function bookmarkActiveTab() {
     if (activeId === null) return;
     send({ type: 'bookmark_active_tab', tabId: activeId });
-    settMenu.classList.add('hidden');
+    closeMenu();
 }
 
 urlInput.onkeydown = (e) => {
@@ -251,8 +253,12 @@ urlInput.onkeydown = (e) => {
 urlInput.onfocus = () => setTimeout(() => urlInput.select(), 10);
 
 newTabBtn.onclick = () => createTab();
-settBtn.onclick = (e) => { e.stopPropagation(); settMenu.classList.toggle('hidden'); };
-document.onclick = () => settMenu.classList.add('hidden');
+settBtn.onclick = (e) => { 
+    e.stopPropagation(); 
+    const isHidden = settMenu.classList.toggle('hidden'); 
+    send({ type: 'toggle_menu', open: !isHidden });
+};
+document.onclick = () => closeMenu();
 
 document.getElementById('m-new-tab').onclick = () => createTab();
 document.getElementById('m-close-tab').onclick = () => closeActiveTab();

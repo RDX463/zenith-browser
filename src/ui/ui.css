@@ -164,37 +164,29 @@ body {
 
 /* ── Settings menu ───────────────────────────────────────────────────────── */
 .settings-menu {
-    position: fixed; top: 85px; right: 12px; width: 220px;
+    position: fixed; top: 40px; right: 10px; width: auto; z-index: 1000;
     background: var(--menu-bg); border: 1px solid var(--menu-border);
-    border-radius: 13px; box-shadow: var(--shadow);
-    z-index: 1000; padding: 6px;
-    animation: menuIn 0.18s cubic-bezier(0.16,1,0.3,1);
+    border-radius: 8px; box-shadow: var(--shadow);
+    display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 4px 6px;
+    animation: menuIn 0.15s cubic-bezier(0.16,1,0.3,1);
 }
 .settings-menu.hidden { display: none; }
 
 @keyframes menuIn {
-    from { opacity: 0; transform: translateY(-8px) scale(0.96); }
-    to   { opacity: 1; transform: translateY(0)    scale(1); }
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-.menu-section-label {
-    padding: 6px 10px 3px; font-size: 10px; font-weight: 700;
-    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
-}
 .menu-item {
-    padding: 8px 10px; font-size: 13px; font-weight: 500;
-    color: var(--text-primary); border-radius: 7px; cursor: pointer;
-    display: flex; align-items: center; gap: 8px; transition: background 0.12s;
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 10px; font-size: 13px; font-weight: 500;
+    color: var(--text-primary); border-radius: 6px; cursor: pointer;
+    transition: background 0.1s; white-space: nowrap;
 }
 .menu-item:hover { background: var(--menu-hover); }
-.menu-item--info { cursor: default; color: var(--text-muted); font-size: 12px; font-weight: 400; }
-.menu-item--info:hover { background: transparent; }
-.menu-item-icon { font-size: 15px; opacity: 0.7; width: 18px; text-align: center; }
+
 .menu-kbd {
-    margin-left: auto; font-size: 11px; color: var(--text-muted);
-    background: var(--btn-hover); border-radius: 4px; padding: 1px 5px;
-    font-family: system-ui, sans-serif;
+    font-size: 11px; color: var(--text-muted); opacity: 0.8; margin-left: 2px;
 }
-.menu-divider { height: 1px; background: var(--menu-border); margin: 4px 0; }
 
 .hidden { display: none !important; }

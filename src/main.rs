@@ -18,6 +18,7 @@ use wry::{
 };
 
 const CHROME_HEIGHT: u32 = 82;
+const CUSTOM_USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 const HOME_URL: &str = "zenith://assets/home";
 const SETTINGS_URL: &str = "zenith://assets/settings";
 const HISTORY_URL: &str = "zenith://assets/history";
@@ -68,6 +69,7 @@ enum UserEvent {
         path: Option<String>,
         success: bool,
     },
+    ToggleMenu,
 }
 
 #[derive(Clone, Copy)]
@@ -92,6 +94,8 @@ struct IpcMessage {
     key: Option<String>,
     #[serde(default)]
     value: Option<String>,
+    #[serde(default)]
+    open: Option<bool>,
 }
 
 struct BrowserTab {
@@ -735,6 +739,35 @@ fn tab_initialization_script(tab_id: u32) -> String {
                 notifyUrl();
                 ensureYoutubeAccountSync();
             }}
+
+            window.addEventListener('keydown', function(e) {{
+                var isPrimary = e.metaKey || e.ctrlKey;
+                if (!isPrimary) return;
+
+                var key = (e.key || '').toLowerCase();
+                if (key === 't') {{
+                    e.preventDefault();
+                    send({{ type: 'new_tab' }});
+                }} else if (key === 'w') {{
+                    e.preventDefault();
+                    send({{ type: 'close_tab', tabId: {tab_id} }});
+                }} else if (key === 'r') {{
+                    e.preventDefault();
+                    send({{ type: 'tab_action', tabId: {tab_id}, action: 'reload' }});
+                }} else if (key === 'd') {{
+                    e.preventDefault();
+                    send({{ type: 'bookmark_active_tab', tabId: {tab_id} }});
+                }} else if (key === 'y') {{
+                    e.preventDefault();
+                    send({{ type: 'open_history_tab' }});
+                }} else if (key === 'j') {{
+                    e.preventDefault();
+                    send({{ type: 'open_downloads_tab' }});
+                }} else if (key === ',') {{
+                    e.preventDefault();
+                    send({{ type: 'open_settings_tab' }});
+                }}
+            }});
         }})();
         "#
     )
@@ -928,6 +961,9 @@ fn dispatch_ipc_message(
         "clear_downloads" => {
             let _ = proxy.send_event(UserEvent::ClearDownloads);
         }
+        "toggle_menu" => {
+            let _ = proxy.send_event(UserEvent::ToggleMenu);
+        }
         _ => {}
     }
 }
@@ -951,6 +987,7 @@ fn build_browser_tab(
     let init_script = tab_initialization_script(tab_id);
 
     let webview = WebViewBuilder::new_with_web_context(web_context)
+        .with_user_agent(CUSTOM_USER_AGENT)
         .with_bounds(bounds)
         .with_url(url)
         .with_initialization_script(&init_script)
@@ -1303,6 +1340,7 @@ fn main() {
                         .build(event_loop_target)
                         && let Ok(auth_webview) =
                             WebViewBuilder::new_with_web_context(&mut web_context)
+                                .with_user_agent(CUSTOM_USER_AGENT)
                                 .with_url(&url)
                                 .with_navigation_handler(|next| {
                                     is_http_like_url(&next) || is_assets_url(&next)
@@ -1334,6 +1372,7 @@ fn main() {
                             size: WryLogicalSize::new(1, 1).into(),
                         };
                         if let Ok(bg_webview) = WebViewBuilder::new_with_web_context(&mut web_context)
+                            .with_user_agent(CUSTOM_USER_AGENT)
                             .with_bounds(hidden_bounds)
                             .with_url(&url)
                             .with_navigation_handler(|next| {
@@ -1489,6 +1528,9 @@ fn main() {
                 }
                 _ => {}
             },
+            Event::UserEvent(UserEvent::ToggleMenu) => {
+                // Menu logic is now fully handled in ui.html horizontally
+            }
             _ => {}
         }
     });
