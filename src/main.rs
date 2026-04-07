@@ -634,10 +634,9 @@ fn should_warmup_youtube_account_sync(raw_url: &str) -> bool {
 
 fn chrome_bounds_for_window(window: &Window) -> Rect {
     let size = window.inner_size().to_logical::<u32>(window.scale_factor());
-    let height = CHROME_HEIGHT.min(size.height.max(1));
     Rect {
         position: LogicalPosition::new(0, 0).into(),
-        size: WryLogicalSize::new(size.width.max(1), height).into(),
+        size: WryLogicalSize::new(size.width.max(1), size.height.max(1)).into(),
     }
 }
 
@@ -1430,6 +1429,7 @@ fn main() {
     let chrome_proxy = proxy.clone();
     let chrome_protocol_html = final_ui_html.clone();
     let chrome_webview = WebViewBuilder::new_with_web_context(&mut web_context)
+        .with_transparent(true)
         .with_bounds(chrome_bounds_for_window(&window))
         .with_url("zenith://assets/ui")
         .with_navigation_handler(|url| is_assets_url(&url))
