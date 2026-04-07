@@ -19,6 +19,7 @@ body {
     color: var(--text-primary-light);
     height: 100vh;
     display: flex;
+    flex-direction: column; /* Stack tabs-bar and toolbar */
     align-items: center;
     background: transparent;
     -webkit-font-smoothing: antialiased;
@@ -29,6 +30,131 @@ body {
     body {
         color: var(--text-primary-dark);
     }
+}
+
+.tabs-bar {
+    width: 100%;
+    height: 38px;
+    display: flex;
+    align-items: flex-end;
+    padding: 0 8px;
+    gap: 4px;
+    background: var(--bg-light);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid var(--border-light);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    .tabs-bar {
+        background: var(--bg-dark);
+        border-bottom: 1px solid var(--border-dark);
+    }
+}
+
+.tabs-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.tab {
+    height: 30px;
+    min-width: 100px;
+    max-width: 200px;
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid transparent;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    position: relative;
+    border-bottom: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    .tab {
+        background: rgba(255, 255, 255, 0.05);
+    }
+}
+
+.tab.active {
+    background: var(--bg-light);
+    border-color: var(--border-light);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+    z-index: 2;
+}
+
+@media (prefers-color-scheme: dark) {
+    .tab.active {
+        background: var(--bg-dark);
+        border-color: var(--border-dark);
+    }
+}
+
+.tab:not(.active):hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+    .tab:not(.active):hover {
+        background: rgba(255, 255, 255, 0.08);
+    }
+}
+
+.tab-title {
+    flex-grow: 1;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.8;
+}
+
+.tab.active .tab-title {
+    opacity: 1;
+    color: var(--accent);
+}
+
+.tab-close {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s;
+}
+
+.tab:hover .tab-close {
+    opacity: 0.6;
+}
+
+.tab-close:hover {
+    background: rgba(0, 0, 0, 0.1);
+    opacity: 1 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    .tab-close:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+}
+
+.tab-close svg {
+    width: 12px;
+    height: 12px;
+}
+
+#new-tab-btn {
+    margin-bottom: 4px;
+    margin-left: 4px;
 }
 
 .toolbar {
