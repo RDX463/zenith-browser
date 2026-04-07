@@ -32,6 +32,8 @@ enum IpcMsg {
     SwitchTab(u32),
     #[serde(rename = "close_tab")]
     CloseTab(u32),
+    #[serde(rename = "new_window")]
+    NewWindow,
 }
 
 enum UserEvent {
@@ -82,7 +84,7 @@ fn main() -> wry::Result<()> {
     // Tab Management State
     let mut tabs: HashMap<u32, wry::WebView> = HashMap::new();
     let mut tab_infos: Vec<TabInfo> = Vec::new();
-    let mut active_tab_id: u32 = 0;
+    let mut active_tab_id: u32;
     let mut next_tab_id: u32 = 0;
 
     // Initial Tab creation logic (manual here to avoid closure borrow issues)
@@ -214,6 +216,11 @@ fn main() -> wry::Result<()> {
                         }
                         update_ui_tabs(&ui_webview, &tab_infos, active_tab_id);
                     }
+                }
+                IpcMsg::NewWindow => {
+                    // Placeholder: In a full implementation, this would spawn a new process 
+                    // or a second window in the same event loop.
+                    println!("New Window requested");
                 }
             },
 
