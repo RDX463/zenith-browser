@@ -1895,34 +1895,28 @@ fn main() {
     let lastQuery = '';
     
     function doFind(q, forward) {
-        if (!q) { window.getSelection() && window.getSelection().removeAllRanges(); countEl.textContent = ''; return; }
+        if (!q) { window.getSelection() && window.getSelection().removeAllRanges(); countEl.textContent = ''; inp.focus(); return; }
         if (q !== lastQuery) {
-            // Reset to find from beginning
             window.getSelection() && window.getSelection().removeAllRanges();
             lastQuery = q;
         }
         const found = window.find(q, false, !forward, true, false, false, false);
         countEl.textContent = found ? '✓' : 'Not found';
+        // Reclaim focus immediately after window.find() moves it to page content
+        inp.focus();
     }
     
     inp.addEventListener('input', function(e) { doFind(inp.value, true); });
     inp.addEventListener('keydown', function(e) {
         e.stopPropagation();
+        e.stopImmediatePropagation();
         if (e.key === 'Enter') { doFind(inp.value, !e.shiftKey); e.preventDefault(); }
         if (e.key === 'Escape') { host.remove(); e.preventDefault(); }
     }, true);
     
-    shadow.getElementById('next').addEventListener('click', function() { doFind(inp.value, true); });
-    shadow.getElementById('prev').addEventListener('click', function() { doFind(inp.value, false); });
+    shadow.getElementById('next').addEventListener('click', function() { doFind(inp.value, true); inp.focus(); });
+    shadow.getElementById('prev').addEventListener('click', function() { doFind(inp.value, false); inp.focus(); });
     shadow.getElementById('close').addEventListener('click', function() { host.remove(); });
-    
-    // Prevent page from stealing focus from our input
-    inp.addEventListener('blur', function() {
-        setTimeout(function() {
-            const active = shadow.activeElement;
-            if (!active || active === document.body) inp.focus();
-        }, 50);
-    });
     
     setTimeout(function() { inp.focus(); }, 30);
 })();
