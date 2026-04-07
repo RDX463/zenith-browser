@@ -140,6 +140,24 @@ fn fallback_title_for_url(raw_url: &str) -> String {
     "Zenith".to_string()
 }
 
+fn resolved_tab_title(raw_title: &str, current_url: &str) -> String {
+    let trimmed = raw_title.trim();
+    if trimmed.is_empty() {
+        return fallback_title_for_url(current_url);
+    }
+
+    let lower = trimmed.to_ascii_lowercase();
+    let generic = matches!(
+        lower.as_str(),
+        "zenith" | "zenith browser" | "about:blank" | "new tab"
+    );
+    if generic && is_http_like_url(current_url) {
+        return fallback_title_for_url(current_url);
+    }
+
+    trimmed.to_string()
+}
+
 fn normalize_user_input_url(raw: &str) -> String {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
@@ -901,12 +919,7 @@ fn main() {
             }
             Event::UserEvent(UserEvent::TabTitleChanged { tab_id, title }) => {
                 if let Some(tab) = tabs.iter_mut().find(|t| t.id == tab_id) {
-                    let trimmed = title.trim();
-                    tab.title = if trimmed.is_empty() {
-                        fallback_title_for_url(&tab.url)
-                    } else {
-                        trimmed.to_string()
-                    };
+                    tab.title = resolved_tab_title(&title, &tab.url);
                     if chrome_ready {
                         sync_chrome_state(&chrome_webview, &tabs, active_tab_id);
                     }
@@ -976,7 +989,7 @@ fn main() {
 mod tests {
     use super::{
         fallback_title_for_url, is_background_google_account_sync_url, normalize_user_input_url,
-        should_open_auth_window, should_warmup_youtube_account_sync,
+        resolved_tab_title, should_open_auth_window, should_warmup_youtube_account_sync,
     };
 
     #[test]
@@ -998,6 +1011,14 @@ mod tests {
     fn fallback_title_uses_hostname() {
         assert_eq!(
             fallback_title_for_url("https://www.youtube.com/watch?v=1"),
+            "youtube.com"
+        );
+    }
+
+    #[test]
+    fn resolved_title_falls_back_for_generic_browser_title() {
+        assert_eq!(
+            resolved_tab_title("Zenith", "https://www.youtube.com/"),
             "youtube.com"
         );
     }
