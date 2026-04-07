@@ -38,6 +38,7 @@ enum UserEvent {
     },
     OpenSettingsTab,
     OpenAuthWindow(String),
+    OpenBackgroundAuthSync(String),
     TabUrlChanged {
         tab_id: u32,
         url: String,
@@ -228,19 +229,70 @@ fn should_open_auth_window(raw_url: &str) -> bool {
         return false;
     }
 
-    if is_auth_host(&host) {
+    if host == "accounts.google.com" {
+        let path = url.path().to_ascii_lowercase();
+        if path.contains("rotatecookiespage")
+            || path.contains("checkcookie")
+            || path.contains("listaccounts")
+        {
+            return false;
+        }
+    }
+
+    let auth_like_host = is_auth_host(&host)
+        || host.starts_with("accounts.")
+        || host.starts_with("auth.")
+        || host.starts_with("login.")
+        || host.contains("oauth");
+    let oauth_exchange = looks_like_oauth_exchange(&url);
+    if oauth_exchange {
         return true;
     }
 
-    if host.starts_with("accounts.") || host.starts_with("auth.") || host.starts_with("login.") {
+    if !auth_like_host {
+        return false;
+    }
+
+    let auth_markers = has_auth_markers(&url);
+    if auth_markers {
         return true;
     }
 
-    if host.contains("oauth") {
-        return true;
+    let path = url.path().to_ascii_lowercase();
+    matches!(
+        path.as_str(),
+        "/signin" | "/login" | "/oauth" | "/authorize"
+    )
+}
+
+fn is_background_google_account_sync_url(raw_url: &str) -> bool {
+    let Ok(url) = Url::parse(raw_url) else {
+        return false;
+    };
+
+    let host = url.host_str().unwrap_or_default().to_ascii_lowercase();
+    if host != "accounts.google.com" {
+        return false;
     }
 
-    has_auth_markers(&url) && looks_like_oauth_exchange(&url)
+    let path = url.path().to_ascii_lowercase();
+    path.contains("rotatecookiespage")
+        || path.contains("checkcookie")
+        || path.contains("listaccounts")
+}
+
+fn should_warmup_youtube_account_sync(raw_url: &str) -> bool {
+    let Ok(url) = Url::parse(raw_url) else {
+        return false;
+    };
+
+    let host = url.host_str().unwrap_or_default().to_ascii_lowercase();
+    if host != "youtube.com" && host != "www.youtube.com" && host != "m.youtube.com" {
+        return false;
+    }
+
+    let path = url.path().trim_end_matches('/').to_ascii_lowercase();
+    path.is_empty()
 }
 
 fn chrome_bounds_for_window(window: &Window) -> Rect {
@@ -323,6 +375,52 @@ fn tab_initialization_script(tab_id: u32) -> String {
             window.addEventListener('popstate', notifyUrl);
             window.addEventListener('hashchange', notifyUrl);
 
+            var applyYoutubeTheme = function(theme) {{
+                try {{
+                    var host = (window.location.hostname || '').toLowerCase();
+                    if (!(host === 'youtube.com' || host === 'www.youtube.com' || host === 'm.youtube.com')) return;
+                    var dark = theme === 'dark';
+                    var apply = function() {{
+                        var html = document.documentElement;
+                        if (html) {{
+                            if (dark) html.setAttribute('dark', '');
+                            else html.removeAttribute('dark');
+                            html.style.colorScheme = dark ? 'dark' : 'light';
+                        }}
+                        if (document.body) {{
+                            document.body.classList.toggle('dark-theme', dark);
+                            document.body.classList.toggle('light-theme', !dark);
+                        }}
+                        var app = document.querySelector('ytd-app');
+                        if (app) {{
+                            if (dark) {{
+                                app.setAttribute('dark', '');
+                                app.setAttribute('dark-theme', '');
+                            }} else {{
+                                app.removeAttribute('dark');
+                                app.removeAttribute('dark-theme');
+                            }}
+                        }}
+                    }};
+                    apply();
+                    setTimeout(apply, 120);
+                    setTimeout(apply, 450);
+                }} catch (_) {{}}
+            }};
+
+            window.__zenithApplyBrowserTheme = function(theme) {{
+                try {{
+                    window.__ZENITH_THEME = theme === 'light' ? 'light' : 'dark';
+                    applyYoutubeTheme(window.__ZENITH_THEME);
+                }} catch (_) {{}}
+            }};
+
+            window.addEventListener('yt-navigate-finish', function() {{
+                try {{
+                    if (window.__ZENITH_THEME) applyYoutubeTheme(window.__ZENITH_THEME);
+                }} catch (_) {{}}
+            }});
+
             if (document.readyState === 'loading') {{
                 document.addEventListener('DOMContentLoaded', notifyUrl, {{ once: true }});
             }} else {{
@@ -331,6 +429,20 @@ fn tab_initialization_script(tab_id: u32) -> String {
         }})();
         "#
     )
+}
+
+fn apply_browser_theme_to_tab(tab: &BrowserTab, theme: &str) {
+    let normalized = if theme.eq_ignore_ascii_case("light") {
+        "light"
+    } else {
+        "dark"
+    };
+    if let Ok(theme_json) = serde_json::to_string(normalized) {
+        let js = format!(
+            "if(window.__zenithApplyBrowserTheme) window.__zenithApplyBrowserTheme({theme_json});"
+        );
+        let _ = tab.webview.evaluate_script(&js);
+    }
 }
 
 fn apply_tab_visibility(tabs: &[BrowserTab], active_tab_id: Option<u32>) {
@@ -452,7 +564,6 @@ fn build_browser_tab(
     proxy: &EventLoopProxy<UserEvent>,
     ui_html: Arc<String>,
 ) -> Option<BrowserTab> {
-    let nav_proxy = proxy.clone();
     let popup_proxy = proxy.clone();
     let title_proxy = proxy.clone();
     let load_proxy = proxy.clone();
@@ -465,24 +576,19 @@ fn build_browser_tab(
         .with_url(url)
         .with_initialization_script(&init_script)
         .with_navigation_handler(move |next| {
-            if should_open_auth_window(&next) {
-                let _ = nav_proxy.send_event(UserEvent::OpenAuthWindow(next));
-                return false;
-            }
-
             if next.starts_with("zenith://") {
                 return is_assets_url(&next);
             }
 
-            true
+            is_http_like_url(&next)
         })
         .with_new_window_req_handler(move |next, _features| {
-            if should_open_auth_window(&next) {
-                let _ = popup_proxy.send_event(UserEvent::OpenAuthWindow(next));
-            } else if is_http_like_url(&next) || is_assets_url(&next) {
-                let _ = popup_proxy.send_event(UserEvent::NewTab {
-                    url: Some(next),
-                    activate: true,
+            if is_background_google_account_sync_url(&next) {
+                let _ = popup_proxy.send_event(UserEvent::OpenBackgroundAuthSync(next));
+            } else if should_open_auth_window(&next) {
+                let _ = popup_proxy.send_event(UserEvent::NavigateTab {
+                    tab_id: Some(tab_id),
+                    url: next,
                 });
             }
             wry::NewWindowResponse::Deny
@@ -549,7 +655,9 @@ fn main() {
     let mut next_tab_id: u32 = 1;
     let mut active_tab_id: Option<u32> = None;
     let mut chrome_ready = false;
+    let mut current_theme = "dark".to_string();
     let mut auth_windows: Vec<AuthWindow> = Vec::new();
+    let mut background_sync_webview: Option<WebView> = None;
 
     if let Some(initial_tab) = build_browser_tab(
         &window,
@@ -560,6 +668,7 @@ fn main() {
         &proxy,
         final_ui_html.clone(),
     ) {
+        apply_browser_theme_to_tab(&initial_tab, &current_theme);
         active_tab_id = Some(next_tab_id);
         next_tab_id += 1;
         tabs.push(initial_tab);
@@ -576,11 +685,7 @@ fn main() {
                 sync_chrome_state(&chrome_webview, &tabs, active_tab_id);
             }
             Event::UserEvent(UserEvent::NewTab { url, activate }) => {
-                let mut start_url = normalize_user_input_url(url.as_deref().unwrap_or(HOME_URL));
-                if should_open_auth_window(&start_url) {
-                    let _ = proxy.send_event(UserEvent::OpenAuthWindow(start_url));
-                    start_url = HOME_URL.to_string();
-                }
+                let start_url = normalize_user_input_url(url.as_deref().unwrap_or(HOME_URL));
 
                 if let Some(tab) = build_browser_tab(
                     &window,
@@ -591,6 +696,7 @@ fn main() {
                     &proxy,
                     final_ui_html.clone(),
                 ) {
+                    apply_browser_theme_to_tab(&tab, &current_theme);
                     tabs.push(tab);
                     if activate || active_tab_id.is_none() {
                         active_tab_id = Some(next_tab_id);
@@ -637,9 +743,7 @@ fn main() {
             Event::UserEvent(UserEvent::NavigateTab { tab_id, url }) => {
                 if let Some(target_id) = tab_id.or(active_tab_id) {
                     let next_url = normalize_user_input_url(&url);
-                    if should_open_auth_window(&next_url) {
-                        let _ = proxy.send_event(UserEvent::OpenAuthWindow(next_url));
-                    } else if !(next_url.starts_with("zenith://") && !is_assets_url(&next_url)) {
+                    if !(next_url.starts_with("zenith://") && !is_assets_url(&next_url)) {
                         if let Some(tab) = tabs.iter_mut().find(|t| t.id == target_id) {
                             tab.url = next_url.clone();
                             tab.title = fallback_title_for_url(&next_url);
@@ -703,11 +807,6 @@ fn main() {
                                     if should_open_auth_window(&next) {
                                         let _ =
                                             popup_proxy.send_event(UserEvent::OpenAuthWindow(next));
-                                    } else if is_http_like_url(&next) || is_assets_url(&next) {
-                                        let _ = popup_proxy.send_event(UserEvent::NewTab {
-                                            url: Some(next),
-                                            activate: true,
-                                        });
                                     }
                                     wry::NewWindowResponse::Deny
                                 })
@@ -720,6 +819,37 @@ fn main() {
                     }
                 }
             }
+            Event::UserEvent(UserEvent::OpenBackgroundAuthSync(url)) => {
+                if is_http_like_url(&url) {
+                    if let Some(bg) = background_sync_webview.as_ref() {
+                        let _ = bg.load_url(&url);
+                    } else {
+                        let sync_proxy = proxy.clone();
+                        let hidden_bounds = Rect {
+                            position: LogicalPosition::new(0, 0).into(),
+                            size: WryLogicalSize::new(1, 1).into(),
+                        };
+                        if let Ok(bg_webview) = WebViewBuilder::new_with_web_context(&mut web_context)
+                            .with_bounds(hidden_bounds)
+                            .with_url(&url)
+                            .with_navigation_handler(|next| {
+                                is_http_like_url(&next) || is_assets_url(&next)
+                            })
+                            .with_new_window_req_handler(move |next, _| {
+                                if is_background_google_account_sync_url(&next) {
+                                    let _ = sync_proxy
+                                        .send_event(UserEvent::OpenBackgroundAuthSync(next));
+                                }
+                                wry::NewWindowResponse::Deny
+                            })
+                            .build_as_child(&window)
+                        {
+                            let _ = bg_webview.set_visible(false);
+                            background_sync_webview = Some(bg_webview);
+                        }
+                    }
+                }
+            }
             Event::UserEvent(UserEvent::TabUrlChanged { tab_id, url }) => {
                 if let Some(tab) = tabs.iter_mut().find(|t| t.id == tab_id) {
                     let old_fallback = fallback_title_for_url(&tab.url);
@@ -728,6 +858,12 @@ fn main() {
                     {
                         tab.title = fallback_title_for_url(&tab.url);
                     }
+                    if should_warmup_youtube_account_sync(&tab.url) {
+                        let _ = proxy.send_event(UserEvent::OpenBackgroundAuthSync(
+                            "https://accounts.google.com/ListAccounts?gpsia=1".to_string(),
+                        ));
+                    }
+                    apply_browser_theme_to_tab(tab, &current_theme);
                     if chrome_ready {
                         sync_chrome_state(&chrome_webview, &tabs, active_tab_id);
                     }
@@ -747,15 +883,17 @@ fn main() {
                 }
             }
             Event::UserEvent(UserEvent::SettingsChanged { key, value }) => {
+                let mut next_theme: Option<&str> = None;
                 let normalized = match key.as_str() {
-                    "theme" => Some((
-                        "theme",
-                        if value.eq_ignore_ascii_case("light") {
+                    "theme" => {
+                        let v = if value.eq_ignore_ascii_case("light") {
                             "light"
                         } else {
                             "dark"
-                        },
-                    )),
+                        };
+                        next_theme = Some(v);
+                        Some(("theme", v))
+                    }
                     "searchEngine" | "search-engine" => Some((
                         "searchEngine",
                         match value.as_str() {
@@ -775,6 +913,13 @@ fn main() {
                         "if(window.zenithApplySetting) window.zenithApplySetting({k_json}, {v_json});"
                     );
                     let _ = chrome_webview.evaluate_script(&js);
+                }
+
+                if let Some(theme) = next_theme {
+                    current_theme = theme.to_string();
+                    for tab in &tabs {
+                        apply_browser_theme_to_tab(tab, &current_theme);
+                    }
                 }
             }
             Event::WindowEvent {
@@ -799,7 +944,10 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{fallback_title_for_url, normalize_user_input_url, should_open_auth_window};
+    use super::{
+        fallback_title_for_url, is_background_google_account_sync_url, normalize_user_input_url,
+        should_open_auth_window, should_warmup_youtube_account_sync,
+    };
 
     #[test]
     fn normalize_user_input_uses_https_for_domains() {
@@ -832,6 +980,46 @@ mod tests {
     fn auth_window_detects_oauth_parameters() {
         assert!(should_open_auth_window(
             "https://example.com/authorize?client_id=a&redirect_uri=b&response_type=code"
+        ));
+    }
+
+    #[test]
+    fn auth_window_ignores_background_accounts_popup_urls() {
+        assert!(!should_open_auth_window(
+            "https://accounts.google.com/RotateCookiesPage"
+        ));
+    }
+
+    #[test]
+    fn auth_window_ignores_accounts_root() {
+        assert!(!should_open_auth_window("https://accounts.google.com/"));
+    }
+
+    #[test]
+    fn auth_window_accepts_google_service_login() {
+        assert!(should_open_auth_window(
+            "https://accounts.google.com/ServiceLogin?hl=en"
+        ));
+    }
+
+    #[test]
+    fn detects_background_google_account_sync_url() {
+        assert!(is_background_google_account_sync_url(
+            "https://accounts.google.com/RotateCookiesPage?origin=https://www.youtube.com"
+        ));
+        assert!(!is_background_google_account_sync_url(
+            "https://accounts.google.com/ServiceLogin?hl=en"
+        ));
+    }
+
+    #[test]
+    fn detects_youtube_home_for_sync_warmup() {
+        assert!(should_warmup_youtube_account_sync(
+            "https://www.youtube.com/"
+        ));
+        assert!(should_warmup_youtube_account_sync("https://youtube.com"));
+        assert!(!should_warmup_youtube_account_sync(
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
         ));
     }
 }

@@ -185,7 +185,11 @@ function applyTheme(theme) {
     const mode = (theme === 'light') ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', mode);
 }
-applyTheme(localStorage.getItem('zenith-theme') || 'dark');
+const savedTheme = localStorage.getItem('zenith-theme');
+const systemTheme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    ? 'dark'
+    : 'light';
+applyTheme(savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : systemTheme);
 
 function sendToHost(payload) {
     const message = { ...payload };

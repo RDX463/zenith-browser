@@ -65,7 +65,13 @@ const SEARCH_ENGINES = {
 
 let tabs = [];
 let activeId = null;
-let darkMode = localStorage.getItem('zenith-theme') !== 'light';
+let darkMode = (() => {
+    const saved = localStorage.getItem('zenith-theme');
+    if (saved === 'light' || saved === 'dark') {
+        return saved === 'dark';
+    }
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+})();
 
 function send(payload) {
     try {
@@ -276,6 +282,7 @@ window.addEventListener('storage', (e) => {
 
 applyTheme();
 updateNavButtons();
+send({ type: 'settings-change', key: 'theme', value: themeName() });
 send({ type: 'chrome_ready' });
 </script>
 </body>
