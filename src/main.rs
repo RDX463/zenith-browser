@@ -704,26 +704,31 @@ fn tab_initialization_script(tab_id: u32) -> String {
             }};
 
             // Camera & Microphone
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {{
-                var originalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-                navigator.mediaDevices.getUserMedia = function(constraints) {{
-                    if (constraints.video) notifyPermission('camera', true);
-                    if (constraints.audio) notifyPermission('microphone', true);
-                    return originalGetUserMedia(constraints);
+            if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {{
+                var originalGUM = navigator.mediaDevices.getUserMedia;
+                navigator.mediaDevices.getUserMedia = function() {{
+                    try {{
+                        var constraints = arguments[0];
+                        if (constraints) {{
+                            if (constraints.video) notifyPermission('camera', true);
+                            if (constraints.audio) notifyPermission('microphone', true);
+                        }}
+                    }} catch (e) {{}}
+                    return originalGUM.apply(this, arguments);
                 }};
             }}
 
             // Geolocation
-            if (navigator.geolocation) {{
-                var originalGetCurrentPosition = navigator.geolocation.getCurrentPosition.bind(navigator.geolocation);
-                navigator.geolocation.getCurrentPosition = function(success, error, options) {{
+            if (navigator.geolocation && typeof navigator.geolocation.getCurrentPosition === 'function') {{
+                var originalGCP = navigator.geolocation.getCurrentPosition;
+                navigator.geolocation.getCurrentPosition = function() {{
                     notifyPermission('geolocation', true);
-                    return originalGetCurrentPosition(success, error, options);
+                    return originalGCP.apply(this, arguments);
                 }};
-                var originalWatchPosition = navigator.geolocation.watchPosition.bind(navigator.geolocation);
-                navigator.geolocation.watchPosition = function(success, error, options) {{
+                var originalWP = navigator.geolocation.watchPosition;
+                navigator.geolocation.watchPosition = function() {{
                     notifyPermission('geolocation', true);
-                    return originalWatchPosition(success, error, options);
+                    return originalWP.apply(this, arguments);
                 }};
             }}
 
