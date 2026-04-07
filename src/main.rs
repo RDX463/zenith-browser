@@ -78,6 +78,14 @@ enum UserEvent {
     },
     MenuAction(muda::MenuId),
     OpenFindBar,
+    SaveImage {
+        url: String,
+        filename: String,
+    },
+    ShowToast {
+        message: String,
+        toast_type: String,
+    },
 }
 
 #[derive(Clone, Copy)]
@@ -112,6 +120,8 @@ struct IpcMessage {
     query: Option<String>,
     #[serde(default)]
     forward: Option<bool>,
+    #[serde(default)]
+    filename: Option<String>,
 }
 
 struct BrowserTab {
@@ -795,6 +805,21 @@ fn tab_initialization_script(tab_id: u32) -> String {
                     send({{ type: 'open_settings_tab' }});
                 }}
             }});
+
+            // Right-click context menu for images
+            document.addEventListener('contextmenu', function(e) {{
+                var img = e.target;
+                if (!img) return;
+                // walk up to find an img/video element
+                var el = img.closest('img, [style*="background-image"]');
+                if (!el && img.tagName !== 'IMG') return;
+                e.preventDefault();
+                var src = el ? (el.src || el.currentSrc || '') : '';
+                if (!src) return;
+                var filename = src.split('/').pop().split('?')[0] || 'image.jpg';
+                if (!filename.includes('.')) filename += '.jpg';
+                send({{ type: 'save_image', url: src, filename: filename }});
+            }});
         }})();
         "#
     )
@@ -997,6 +1022,11 @@ fn dispatch_ipc_message(
             if let Some(query) = message.query {
                 let forward = message.forward.unwrap_or(true);
                 let _ = proxy.send_event(UserEvent::FindInPage { query, forward });
+            }
+        }
+        "save_image" => {
+            if let (Some(url), Some(filename)) = (message.url, message.filename) {
+                let _ = proxy.send_event(UserEvent::SaveImage { url, filename });
             }
         }
         _ => {}
@@ -1766,6 +1796,57 @@ fn main() {
             }
             Event::UserEvent(UserEvent::MenuAction(_)) => {
                 // Already handled above before the match
+            }
+            Event::UserEvent(UserEvent::SaveImage { url, filename }) => {
+                let dl_dir = dirs::download_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
+                let save_path = dl_dir.join(&filename);
+                let msg_start = format!("Downloading {}", filename);
+                let _ = chrome_webview.evaluate_script(&format!(
+                    "if (window.showToast) window.showToast({}, 'info');",
+                    serde_json::to_string(&msg_start).unwrap()
+                ));
+                let toast_proxy = proxy.clone();
+                let filename_clone = filename.clone();
+                std::thread::spawn(move || {
+                    match reqwest::blocking::get(&url) {
+                        Ok(resp) if resp.status().is_success() => {
+                            match resp.bytes() {
+                                Ok(bytes) => {
+                                    if let Err(e) = std::fs::write(&save_path, &bytes) {
+                                        let _ = toast_proxy.send_event(UserEvent::ShowToast {
+                                            message: format!("Failed to save {}: {}", filename_clone, e),
+                                            toast_type: "error".to_string(),
+                                        });
+                                    } else {
+                                        let _ = toast_proxy.send_event(UserEvent::ShowToast {
+                                            message: format!("Saved {} to Downloads", filename_clone),
+                                            toast_type: "success".to_string(),
+                                        });
+                                    }
+                                }
+                                Err(e) => {
+                                    let _ = toast_proxy.send_event(UserEvent::ShowToast {
+                                        message: format!("Download failed: {}", e),
+                                        toast_type: "error".to_string(),
+                                    });
+                                }
+                            }
+                        }
+                        _ => {
+                            let _ = toast_proxy.send_event(UserEvent::ShowToast {
+                                message: format!("Could not download {}", filename_clone),
+                                toast_type: "error".to_string(),
+                            });
+                        }
+                    }
+                });
+            }
+            Event::UserEvent(UserEvent::ShowToast { message, toast_type }) => {
+                let _ = chrome_webview.evaluate_script(&format!(
+                    "if (window.showToast) window.showToast({}, {});",
+                    serde_json::to_string(&message).unwrap(),
+                    serde_json::to_string(&toast_type).unwrap()
+                ));
             }
             _ => {}
         }
