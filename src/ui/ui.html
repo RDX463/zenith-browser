@@ -44,6 +44,17 @@
     </div>
 </div>
 
+<div id="permission-bar" class="permission-bar hidden">
+    <div class="perm-bar-content">
+        <div class="perm-bar-icon" id="perm-type-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="perm-bar-text" id="perm-text">Allow website to access your camera?</div>
+        <div class="perm-bar-actions">
+            <button onclick="decidePermission('denied')" class="btn-perm btn-deny">Deny</button>
+            <button onclick="decidePermission('granted')" class="btn-perm btn-allow">Allow</button>
+        </div>
+    </div>
 </div>
 
 <div id="find-bar" class="find-bar hidden">
@@ -307,6 +318,53 @@ urlInput.onkeydown = (e) => {
         urlInput.blur();
     }
 };
+
+let pendingPermTabId = null;
+let pendingPermType = null;
+let pendingPermRequestId = null;
+
+function decidePermission(decision) {
+    const bar = document.getElementById('permission-bar');
+    bar.classList.add('hidden');
+    if (pendingPermTabId !== null) {
+        send({ 
+            type: 'permission_decision', 
+            decision, 
+            tabId: pendingPermTabId, 
+            permission: pendingPermType,
+            requestId: pendingPermRequestId 
+        });
+    }
+    pendingPermTabId = null;
+    pendingPermType = null;
+    pendingPermRequestId = null;
+}
+
+function showPermissionPrompt(tabId, url, type, requestId) {
+    pendingPermTabId = tabId;
+    pendingPermType = type;
+    pendingPermRequestId = requestId;
+    const bar = document.getElementById('permission-bar');
+    const text = document.getElementById('perm-text');
+    
+    let label = 'access';
+    if (type === 'camera') label = 'access your camera';
+    if (type === 'microphone') label = 'access your microphone';
+    if (type === 'geolocation') label = 'access your location';
+    if (type === 'notifications') label = 'send you notifications';
+
+    try {
+        const host = new URL(url).hostname || url;
+        text.innerText = `Allow "${host}" to ${label}?`;
+    } catch(e) {
+        text.innerText = `Allow "${url}" to ${label}?`;
+    }
+    
+    bar.classList.remove('hidden');
+}
+
+window.showPermissionPrompt = showPermissionPrompt;
+window.decidePermission = decidePermission;
 
 urlInput.onfocus = () => setTimeout(() => urlInput.select(), 10);
 

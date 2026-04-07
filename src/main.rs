@@ -99,6 +99,18 @@ enum UserEvent {
         permission: String,
         granted: bool,
     },
+    PermissionRequest {
+        tab_id: u32,
+        url: String,
+        permission: String,
+        request_id: String,
+    },
+    PermissionDecision {
+        tab_id: u32,
+        permission: String,
+        decision: String,
+        request_id: String,
+    },
 }
 
 #[derive(Clone, Copy)]
@@ -135,10 +147,18 @@ struct IpcMessage {
     forward: Option<bool>,
     #[serde(default)]
     filename: Option<String>,
+    // Permission related
     #[serde(default)]
     permission: Option<String>,
     #[serde(default)]
+    request_id: Option<String>,
+    #[serde(default)]
+    decision: Option<String>,
+    #[serde(default)]
     granted: Option<bool>,
+    #[serde(default)]
+    toast_type: Option<String>,
+    // Bridge for mixed naming conventions
 }
 
 struct BrowserTab {
@@ -698,37 +718,74 @@ fn tab_initialization_script(tab_id: u32) -> String {
                 try {{ window.ipc.postMessage(JSON.stringify(payload)); }} catch (_) {{}}
             }};
 
-            // Permission Tracking
+            // Permission Tracking & Custom Prompts
+            window._permRequests = {{}};
             var notifyPermission = function(name, granted) {{
                 send({{ type: 'tab_permission_update', tabId: {tab_id}, permission: name, granted: granted }});
             }};
 
+            var requestPermission = function(name) {{
+                return new Promise(function(resolve) {{
+                    var requestId = Math.random().toString(36).substring(7);
+                    window._permRequests[requestId] = resolve;
+                    send({{ type: 'permission_request', tabId: {tab_id}, permission: name, requestId: requestId, url: window.location.href }});
+                }});
+            }};
+
+            window._zenith_grant_permission = function(requestId, result) {{
+                if (window._permRequests[requestId]) {{
+                    window._permRequests[requestId](result);
+                    delete window._permRequests[requestId];
+                }}
+            }};
+
             // Camera & Microphone
             if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {{
-                var originalGUM = navigator.mediaDevices.getUserMedia;
-                navigator.mediaDevices.getUserMedia = function() {{
+                var originalGUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+                navigator.mediaDevices.getUserMedia = async function() {{
                     try {{
                         var constraints = arguments[0];
-                        if (constraints) {{
+                        var type = (constraints && constraints.video) ? 'camera' : 'microphone';
+                        
+                        var result = await requestPermission(type);
+                        if (result === 'granted') {{
                             if (constraints.video) notifyPermission('camera', true);
                             if (constraints.audio) notifyPermission('microphone', true);
+                            return originalGUM.apply(navigator.mediaDevices, arguments);
+                        }} else {{
+                            throw new DOMException("Permission denied by user", "NotAllowedError");
                         }}
-                    }} catch (e) {{}}
-                    return originalGUM.apply(this, arguments);
+                    }} catch (e) {{
+                        throw e;
+                    }}
                 }};
             }}
 
             // Geolocation
             if (navigator.geolocation && typeof navigator.geolocation.getCurrentPosition === 'function') {{
-                var originalGCP = navigator.geolocation.getCurrentPosition;
-                navigator.geolocation.getCurrentPosition = function() {{
-                    notifyPermission('geolocation', true);
-                    return originalGCP.apply(this, arguments);
+                var originalGCP = navigator.geolocation.getCurrentPosition.bind(navigator.geolocation);
+                navigator.geolocation.getCurrentPosition = async function() {{
+                    var success = arguments[0];
+                    var error = arguments[1];
+                    var options = arguments[2];
+
+                    var result = await requestPermission('geolocation');
+                    if (result === 'granted') {{
+                        notifyPermission('geolocation', true);
+                        return originalGCP.apply(navigator.geolocation, arguments);
+                    }} else if (error) {{
+                        error({{ code: 1, message: "User denied Geolocation" }});
+                    }}
                 }};
-                var originalWP = navigator.geolocation.watchPosition;
-                navigator.geolocation.watchPosition = function() {{
-                    notifyPermission('geolocation', true);
-                    return originalWP.apply(this, arguments);
+                
+                var originalWP = navigator.geolocation.watchPosition.bind(navigator.geolocation);
+                navigator.geolocation.watchPosition = async function() {{
+                    var result = await requestPermission('geolocation');
+                    if (result === 'granted') {{
+                        notifyPermission('geolocation', true);
+                        return originalWP.apply(navigator.geolocation, arguments);
+                    }}
+                    return -1;
                 }};
             }}
 
@@ -1105,6 +1162,26 @@ fn dispatch_ipc_message(
                     tab_id: id,
                     permission: perm,
                     granted,
+                });
+            }
+        }
+        "permission_request" => {
+            if let (Some(id), Some(url), Some(permission), Some(request_id)) = (tab_id, message.url, message.permission, message.request_id) {
+                let _ = proxy.send_event(UserEvent::PermissionRequest {
+                    tab_id: id,
+                    url,
+                    permission: permission,
+                    request_id,
+                });
+            }
+        }
+        "permission_decision" => {
+            if let (Some(id), Some(permission), Some(decision), Some(request_id)) = (message.tab_id, message.permission, message.decision, message.request_id) {
+                let _ = proxy.send_event(UserEvent::PermissionDecision {
+                    tab_id: id,
+                    permission: permission,
+                    decision,
+                    request_id,
                 });
             }
         }
@@ -2165,6 +2242,21 @@ fn main() {
                     serde_json::to_string(&message).unwrap(),
                     serde_json::to_string(&toast_type).unwrap()
                 ));
+            }
+            Event::UserEvent(UserEvent::PermissionRequest { tab_id, url, permission, request_id }) => {
+                let js = format!("if (window.showPermissionPrompt) window.showPermissionPrompt({}, {}, '{}', '{}');", 
+                    tab_id, 
+                    serde_json::to_string(&url).unwrap(),
+                    permission,
+                    request_id);
+                let _ = chrome_webview.evaluate_script(&js);
+            }
+            Event::UserEvent(UserEvent::PermissionDecision { tab_id, permission: _, decision, request_id }) => {
+                if let Some(tab) = tabs.iter().find(|t| t.id == tab_id) {
+                    let js = format!("if (window._zenith_grant_permission) window._zenith_grant_permission('{}', '{}');", 
+                        request_id, decision);
+                    let _ = tab.webview.evaluate_script(&js);
+                }
             }
             _ => {}
         }

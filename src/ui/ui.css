@@ -268,3 +268,97 @@ body {
 }
 
 .hidden { display: none !important; }
+
+/* ── Permission Bar ──────────────────────────────────────────────────────── */
+.permission-bar {
+    position: fixed;
+    top: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 480px;
+    background: var(--chrome);
+    border: 1px solid var(--chrome-border);
+    border-radius: 12px;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+    z-index: 1000;
+    padding: 14px 18px;
+    backdrop-filter: blur(20px);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+}
+
+[data-theme="light"] .permission-bar {
+    background: #ffffff;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.08);
+}
+
+.permission-bar.hidden {
+    transform: translateX(-50%) translateY(-20px);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.perm-bar-content {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.perm-bar-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-glow);
+    color: var(--accent);
+    border-radius: 9px;
+    flex-shrink: 0;
+}
+
+.perm-bar-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.perm-bar-text {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+
+.perm-bar-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-perm {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+.btn-deny {
+    background: var(--btn-hover);
+    color: var(--text-primary);
+}
+
+.btn-deny:hover {
+    background: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+}
+
+.btn-allow {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-allow:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
