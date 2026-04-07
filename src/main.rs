@@ -645,11 +645,11 @@ fn chrome_bounds_for_window(window: &Window) -> Rect {
     }
 }
 
-fn full_bounds_for_window(window: &Window) -> Rect {
+fn suggestion_bounds_for_window(window: &Window) -> Rect {
     let size = window.inner_size().to_logical::<u32>(window.scale_factor());
     Rect {
         position: LogicalPosition::new(0, 0).into(),
-        size: WryLogicalSize::new(size.width.max(1), size.height.max(1)).into(),
+        size: WryLogicalSize::new(size.width.max(1), 600.min(size.height)).into(),
     }
 }
 
@@ -1586,7 +1586,6 @@ fn main() {
     let chrome_protocol_html = final_ui_html.clone();
     let chrome_webview = WebViewBuilder::new_with_web_context(&mut web_context)
         .with_transparent(true)
-        .with_background_color((0, 0, 0, 0))
         .with_bounds(chrome_bounds_for_window(&window))
         .with_url("zenith://assets/ui")
         .with_navigation_handler(|url| is_assets_url(&url))
@@ -2321,7 +2320,7 @@ fn main() {
                 fetch_suggestions(query, &recent_sites, &bookmarks, &tabs, proxy.clone());
             }
             Event::UserEvent(UserEvent::SuggestionsShown) => {
-                let _ = chrome_webview.set_bounds(full_bounds_for_window(&window));
+                let _ = chrome_webview.set_bounds(suggestion_bounds_for_window(&window));
             }
             Event::UserEvent(UserEvent::SuggestionsHidden) => {
                 let _ = chrome_webview.set_bounds(chrome_bounds_for_window(&window));
