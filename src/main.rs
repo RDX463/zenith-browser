@@ -20,6 +20,7 @@ use wry::{
 const CHROME_HEIGHT: u32 = 82;
 const HOME_URL: &str = "zenith://assets/home";
 const SETTINGS_URL: &str = "zenith://assets/settings";
+const HISTORY_URL: &str = "zenith://assets/history";
 
 enum UserEvent {
     ChromeReady,
@@ -38,6 +39,7 @@ enum UserEvent {
         action: BrowserAction,
     },
     OpenSettingsTab,
+    OpenHistoryTab,
     BookmarkActiveTab(Option<u32>),
     OpenAuthWindow(String),
     OpenBackgroundAuthSync(String),
@@ -53,6 +55,7 @@ enum UserEvent {
         key: String,
         value: String,
     },
+    ClearHistory,
 }
 
 #[derive(Clone, Copy)]
@@ -145,6 +148,9 @@ fn bookmarks_path() -> PathBuf {
 fn fallback_title_for_url(raw_url: &str) -> String {
     if raw_url.starts_with(SETTINGS_URL) {
         return "Settings".to_string();
+    }
+    if raw_url.starts_with(HISTORY_URL) {
+        return "History".to_string();
     }
     if raw_url.starts_with(HOME_URL) {
         return "New Tab".to_string();
@@ -501,6 +507,13 @@ fn handle_zenith_request(ui_html: &str, request: Request<Vec<u8>>) -> Response<C
             .unwrap();
     }
 
+    if host == "assets" && (path == "/history" || path == "/history/") {
+        return Response::builder()
+            .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
+            .body(Cow::Owned(include_bytes!("ui/history.html").to_vec()))
+            .unwrap();
+    }
+
     Response::builder()
         .status(404)
         .body(Cow::Borrowed(&[][..]))
@@ -661,6 +674,19 @@ fn sync_bookmarks_to_tab(tab: &BrowserTab, bookmarks: &[BookmarkSite]) {
     }
 }
 
+fn sync_history_to_tab(tab: &BrowserTab, recent_sites: &[RecentSite]) {
+    if !tab.url.starts_with(HISTORY_URL) {
+        return;
+    }
+
+    if let Ok(history_json) = serde_json::to_string(recent_sites) {
+        let js = format!(
+            "window.postMessage({{ type: 'history-data', entries: {history_json} }}, '*');"
+        );
+        let _ = tab.webview.evaluate_script(&js);
+    }
+}
+
 fn apply_tab_visibility(tabs: &[BrowserTab], active_tab_id: Option<u32>) {
     for tab in tabs {
         let _ = tab.webview.set_visible(Some(tab.id) == active_tab_id);
@@ -740,6 +766,9 @@ fn dispatch_ipc_message(
         "open_settings_tab" => {
             let _ = proxy.send_event(UserEvent::OpenSettingsTab);
         }
+        "open_history_tab" => {
+            let _ = proxy.send_event(UserEvent::OpenHistoryTab);
+        }
         "bookmark_active_tab" => {
             let _ = proxy.send_event(UserEvent::BookmarkActiveTab(tab_id));
         }
@@ -771,6 +800,9 @@ fn dispatch_ipc_message(
                     value: "google".to_string(),
                 });
             }
+        }
+        "clear_history" => {
+            let _ = proxy.send_event(UserEvent::ClearHistory);
         }
         _ => {}
     }
@@ -916,6 +948,7 @@ fn main() {
                 for tab in &tabs {
                     sync_recent_sites_to_tab(tab, &recent_sites);
                     sync_bookmarks_to_tab(tab, &bookmarks);
+                    sync_history_to_tab(tab, &recent_sites);
                 }
             }
             Event::UserEvent(UserEvent::NewTab { url, activate }) => {
@@ -938,6 +971,7 @@ fn main() {
                     if let Some(new_tab) = tabs.last() {
                         sync_recent_sites_to_tab(new_tab, &recent_sites);
                         sync_bookmarks_to_tab(new_tab, &bookmarks);
+                        sync_history_to_tab(new_tab, &recent_sites);
                     }
                     next_tab_id += 1;
                     apply_tab_visibility(&tabs, active_tab_id);
@@ -1033,6 +1067,24 @@ fn main() {
                     });
                 }
             }
+            Event::UserEvent(UserEvent::OpenHistoryTab) => {
+                if let Some(existing_id) = tabs
+                    .iter()
+                    .find(|t| t.url.starts_with(HISTORY_URL))
+                    .map(|t| t.id)
+                {
+                    active_tab_id = Some(existing_id);
+                    apply_tab_visibility(&tabs, active_tab_id);
+                    if chrome_ready {
+                        sync_chrome_state(&chrome_webview, &tabs, active_tab_id);
+                    }
+                } else {
+                    let _ = proxy.send_event(UserEvent::NewTab {
+                        url: Some(HISTORY_URL.to_string()),
+                        activate: true,
+                    });
+                }
+            }
             Event::UserEvent(UserEvent::BookmarkActiveTab(tab_id)) => {
                 if let Some(target_id) = tab_id.or(active_tab_id)
                     && let Some(tab) = tabs.iter().find(|t| t.id == target_id)
@@ -1044,6 +1096,16 @@ fn main() {
                         for t in &tabs {
                             sync_bookmarks_to_tab(t, &bookmarks);
                         }
+                    }
+                }
+            }
+            Event::UserEvent(UserEvent::ClearHistory) => {
+                if !recent_sites.is_empty() {
+                    recent_sites.clear();
+                    save_recent_sites(&recent_sites_path, &recent_sites);
+                    for tab in &tabs {
+                        sync_recent_sites_to_tab(tab, &recent_sites);
+                        sync_history_to_tab(tab, &recent_sites);
                     }
                 }
             }
@@ -1138,10 +1200,12 @@ fn main() {
                         for tab in &tabs {
                             sync_recent_sites_to_tab(tab, &recent_sites);
                             sync_bookmarks_to_tab(tab, &bookmarks);
+                            sync_history_to_tab(tab, &recent_sites);
                         }
                     } else if let Some(home_tab) = tabs.get(index) {
                         sync_recent_sites_to_tab(home_tab, &recent_sites);
                         sync_bookmarks_to_tab(home_tab, &bookmarks);
+                        sync_history_to_tab(home_tab, &recent_sites);
                     }
 
                     if chrome_ready {
@@ -1167,11 +1231,13 @@ fn main() {
                         for tab in &tabs {
                             sync_recent_sites_to_tab(tab, &recent_sites);
                             sync_bookmarks_to_tab(tab, &bookmarks);
+                            sync_history_to_tab(tab, &recent_sites);
                         }
                     }
 
                     if let Some(tab) = tabs.get(index) {
                         sync_bookmarks_to_tab(tab, &bookmarks);
+                        sync_history_to_tab(tab, &recent_sites);
                     }
 
                     if chrome_ready {
@@ -1270,6 +1336,7 @@ mod tests {
             fallback_title_for_url("https://www.youtube.com/watch?v=1"),
             "youtube.com"
         );
+        assert_eq!(fallback_title_for_url("zenith://assets/history"), "History");
     }
 
     #[test]
