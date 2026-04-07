@@ -18,7 +18,7 @@ use wry::{
 };
 
 const CHROME_HEIGHT: u32 = 82;
-const CUSTOM_USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15";
+const CUSTOM_USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:124.0) Gecko/20100101 Firefox/124.0";
 const HOME_URL: &str = "zenith://assets/home";
 const SETTINGS_URL: &str = "zenith://assets/settings";
 const HISTORY_URL: &str = "zenith://assets/history";
