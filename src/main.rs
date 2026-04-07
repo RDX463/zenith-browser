@@ -1567,6 +1567,7 @@ fn main() {
     let chrome_protocol_html = final_ui_html.clone();
     let chrome_webview = WebViewBuilder::new_with_web_context(&mut web_context)
         .with_transparent(true)
+        .with_background_color((0, 0, 0, 0))
         .with_bounds(chrome_bounds_for_window(&window))
         .with_url("zenith://assets/ui")
         .with_navigation_handler(|url| is_assets_url(&url))
@@ -1655,6 +1656,9 @@ fn main() {
                     }
                     next_tab_id += 1;
                     apply_tab_visibility(&tabs, active_tab_id);
+                    // Force the UI layer back to the top of the stack
+                    let _ = chrome_webview.set_visible(false);
+                    let _ = chrome_webview.set_visible(true);
                     if chrome_ready {
                         sync_chrome_state(&chrome_webview, &tabs, active_tab_id, &bookmarks);
                     }
@@ -1664,6 +1668,9 @@ fn main() {
                 if tabs.iter().any(|t| t.id == tab_id) {
                     active_tab_id = Some(tab_id);
                     apply_tab_visibility(&tabs, active_tab_id);
+                    // Force the UI layer back to the top of the stack
+                    let _ = chrome_webview.set_visible(false);
+                    let _ = chrome_webview.set_visible(true);
                     if chrome_ready {
                         sync_chrome_state(&chrome_webview, &tabs, active_tab_id, &bookmarks);
                     }
