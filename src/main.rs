@@ -573,7 +573,9 @@ fn dispatch_ipc_message(
             let _ = proxy.send_event(UserEvent::OpenSettingsTab);
         }
         "open_auth" => {
-            if let Some(url) = message.url {
+            if fallback_tab_id.is_none()
+                && let Some(url) = message.url
+            {
                 let _ = proxy.send_event(UserEvent::OpenAuthWindow(url));
             }
         }
