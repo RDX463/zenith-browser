@@ -1833,37 +1833,98 @@ fn main() {
                     if let Some(tab) = tabs.iter().find(|t| t.id == tab_id) {
                         let find_js = r#"
 (function() {
-    if (document.getElementById('__zenith_find_bar__')) {
-        const inp = document.getElementById('__zenith_find_input__');
-        inp.focus(); inp.select(); return;
+    const existingBar = document.getElementById('__zenith_find__');
+    if (existingBar) {
+        const inp = existingBar.querySelector('input');
+        if (inp) { inp.focus(); inp.select(); }
+        return;
     }
-    const bar = document.createElement('div');
-    bar.id = '__zenith_find_bar__';
-    bar.style.cssText = 'position:fixed;top:12px;right:12px;z-index:2147483647;background:rgba(30,30,40,0.96);border:1px solid rgba(100,120,255,0.35);border-radius:12px;padding:8px 10px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 32px rgba(0,0,0,0.5);backdrop-filter:blur(20px);font-family:-apple-system,BlinkMacSystemFont,sans-serif;';
-    bar.innerHTML = `
-        <input id="__zenith_find_input__" placeholder="Find..." style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:6px 10px;color:#fff;font-size:13px;width:180px;outline:none;" />
-        <button id="__zenith_find_prev__" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#ccc;padding:5px 8px;cursor:pointer;font-size:14px;">↑</button>
-        <button id="__zenith_find_next__" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#ccc;padding:5px 8px;cursor:pointer;font-size:14px;">↓</button>
-        <span id="__zenith_find_count__" style="color:#aaa;font-size:11px;min-width:50px;"></span>
-        <button id="__zenith_find_close__" style="background:transparent;border:none;color:#aaa;cursor:pointer;font-size:16px;padding:0 4px;">✕</button>
+    
+    // Create the host element with a shadow DOM to isolate from page CSS
+    const host = document.createElement('div');
+    host.id = '__zenith_find__';
+    host.style.cssText = 'all:initial;position:fixed;top:16px;right:16px;z-index:2147483647;';
+    document.documentElement.appendChild(host);
+    
+    const shadow = host.attachShadow({ mode: 'open' });
+    shadow.innerHTML = `
+        <style>
+            :host { all: initial; }
+            .bar {
+                display: flex; align-items: center; gap: 6px;
+                background: rgba(25,25,35,0.97);
+                border: 1px solid rgba(100,120,255,0.4);
+                border-radius: 12px; padding: 7px 10px;
+                box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+                backdrop-filter: blur(24px);
+                font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            }
+            input {
+                background: rgba(255,255,255,0.12);
+                border: 1px solid rgba(255,255,255,0.2);
+                border-radius: 7px; padding: 6px 11px;
+                color: #fff; font-size: 13px; width: 190px;
+                outline: none; font-family: inherit;
+            }
+            input:focus { border-color: rgba(100,140,255,0.7); }
+            input::placeholder { color: rgba(255,255,255,0.4); }
+            button {
+                background: rgba(255,255,255,0.08);
+                border: 1px solid rgba(255,255,255,0.14);
+                border-radius: 7px; color: #ccc;
+                padding: 5px 9px; cursor: pointer;
+                font-size: 13px; font-family: inherit;
+                transition: background 0.1s;
+            }
+            button:hover { background: rgba(255,255,255,0.18); color: #fff; }
+            .count { color: rgba(255,255,255,0.5); font-size: 11px; min-width: 44px; text-align: center; }
+            .close { background: transparent; border: none; font-size: 17px; color: rgba(255,255,255,0.5); padding: 2px 6px; }
+            .close:hover { color: #f87171; background: rgba(248,113,113,0.15); }
+        </style>
+        <div class="bar">
+            <input id="findinput" placeholder="Find in page..." autocomplete="off" spellcheck="false" />
+            <button id="prev">↑</button>
+            <button id="next">↓</button>
+            <span class="count" id="count"></span>
+            <button class="close" id="close">✕</button>
+        </div>
     `;
-    document.body.appendChild(bar);
-    const inp = document.getElementById('__zenith_find_input__');
-    const count = document.getElementById('__zenith_find_count__');
-    function doFind(forward) {
-        var q = inp.value;
-        if (!q) { count.textContent = ''; return; }
-        window.find(q, false, !forward, true, false, false, false);
+    
+    const inp = shadow.getElementById('findinput');
+    const countEl = shadow.getElementById('count');
+    let lastQuery = '';
+    
+    function doFind(q, forward) {
+        if (!q) { window.getSelection() && window.getSelection().removeAllRanges(); countEl.textContent = ''; return; }
+        if (q !== lastQuery) {
+            // Reset to find from beginning
+            window.getSelection() && window.getSelection().removeAllRanges();
+            lastQuery = q;
+        }
+        const found = window.find(q, false, !forward, true, false, false, false);
+        countEl.textContent = found ? '✓' : 'Not found';
     }
-    inp.addEventListener('input', function() { doFind(true); });
+    
+    inp.addEventListener('input', function(e) { doFind(inp.value, true); });
     inp.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') { doFind(!e.shiftKey); e.preventDefault(); }
-        if (e.key === 'Escape') { bar.remove(); }
+        e.stopPropagation();
+        if (e.key === 'Enter') { doFind(inp.value, !e.shiftKey); e.preventDefault(); }
+        if (e.key === 'Escape') { host.remove(); e.preventDefault(); }
+    }, true);
+    
+    shadow.getElementById('next').addEventListener('click', function() { doFind(inp.value, true); });
+    shadow.getElementById('prev').addEventListener('click', function() { doFind(inp.value, false); });
+    shadow.getElementById('close').addEventListener('click', function() { host.remove(); });
+    
+    // Prevent page from stealing focus from our input
+    inp.addEventListener('blur', function() {
+        setTimeout(function() {
+            const active = shadow.activeElement;
+            if (!active || active === document.body) inp.focus();
+        }, 50);
     });
-    document.getElementById('__zenith_find_next__').onclick = function() { doFind(true); };
-    document.getElementById('__zenith_find_prev__').onclick = function() { doFind(false); };
-    document.getElementById('__zenith_find_close__').onclick = function() { bar.remove(); };
-    inp.focus();
+    
+    setTimeout(function() { inp.focus(); }, 30);
 })();
 "#;
                         let _ = tab.webview.evaluate_script(find_js);
