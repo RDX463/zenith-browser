@@ -1429,21 +1429,7 @@ fn main() {
         &format!("<style>{}</style>", ui_css),
     ));
 
-    let chrome_proxy = proxy.clone();
-    let chrome_protocol_html = final_ui_html.clone();
-    let chrome_webview = WebViewBuilder::new_with_web_context(&mut web_context)
-        .with_transparent(true)
-        .with_bounds(chrome_bounds_for_window(&window))
-        .with_url("zenith://assets/ui")
-        .with_navigation_handler(|url| is_assets_url(&url))
-        .with_custom_protocol("zenith".into(), move |_id, request: Request<Vec<u8>>| {
-            handle_zenith_request(chrome_protocol_html.as_str(), request)
-        })
-        .with_ipc_handler(move |request: Request<String>| {
-            dispatch_ipc_message(request.body(), &chrome_proxy, None);
-        })
-        .build_as_child(&window)
-        .unwrap();
+
 
     let mut tabs: Vec<BrowserTab> = Vec::new();
     let mut next_tab_id: u32 = 1;
@@ -1576,6 +1562,22 @@ fn main() {
         });
         apply_tab_visibility(&tabs, active_tab_id);
     }
+
+    let chrome_proxy = proxy.clone();
+    let chrome_protocol_html = final_ui_html.clone();
+    let chrome_webview = WebViewBuilder::new_with_web_context(&mut web_context)
+        .with_transparent(true)
+        .with_bounds(chrome_bounds_for_window(&window))
+        .with_url("zenith://assets/ui")
+        .with_navigation_handler(|url| is_assets_url(&url))
+        .with_custom_protocol("zenith".into(), move |_id, request: Request<Vec<u8>>| {
+            handle_zenith_request(chrome_protocol_html.as_str(), request)
+        })
+        .with_ipc_handler(move |request: Request<String>| {
+            dispatch_ipc_message(request.body(), &chrome_proxy, None);
+        })
+        .build_as_child(&window)
+        .unwrap();
 
     event_loop.run(move |event, event_loop_target, control_flow| {
         *control_flow = ControlFlow::Wait;
