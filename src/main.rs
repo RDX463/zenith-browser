@@ -69,7 +69,7 @@ enum UserEvent {
         path: Option<String>,
         success: bool,
     },
-    ToggleMenu,
+    ToggleMenu(bool),
 }
 
 #[derive(Clone, Copy)]
@@ -94,6 +94,8 @@ struct IpcMessage {
     key: Option<String>,
     #[serde(default)]
     value: Option<String>,
+    #[serde(default)]
+    open: Option<bool>,
 }
 
 struct BrowserTab {
@@ -971,7 +973,9 @@ fn dispatch_ipc_message(
             let _ = proxy.send_event(UserEvent::ClearDownloads);
         }
         "toggle_menu" => {
-            let _ = proxy.send_event(UserEvent::ToggleMenu);
+            if let Some(open) = message.open {
+                let _ = proxy.send_event(UserEvent::ToggleMenu(open));
+            }
         }
         _ => {}
     }
@@ -1587,8 +1591,13 @@ fn main() {
                 }
                 _ => {}
             },
-            Event::UserEvent(UserEvent::ToggleMenu) => {
-                // Menu logic is now fully handled in ui.html horizontally
+            Event::UserEvent(UserEvent::ToggleMenu(open)) => {
+                let size = window.inner_size().to_logical::<u32>(window.scale_factor());
+                let height = if open { 400.min(size.height) } else { CHROME_HEIGHT.min(size.height) };
+                let _ = chrome_webview.set_bounds(Rect {
+                    position: LogicalPosition::new(0, 0).into(),
+                    size: WryLogicalSize::new(size.width, height).into(),
+                });
             }
             _ => {}
         }
