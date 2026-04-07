@@ -663,24 +663,31 @@ fn handle_zenith_request(ui_html: &str, request: Request<Vec<u8>>) -> Response<C
         .unwrap()
 }
 
+fn get_user_agent_data_js() -> String {
+    r#"
+    try {
+        Object.defineProperty(navigator, 'vendor', { get: function() { return 'Google Inc.'; } });
+        Object.defineProperty(navigator, 'userAgentData', {
+            get: () => ({
+                brands: [
+                    { brand: 'Chromium', version: '124' },
+                    { brand: 'Google Chrome', version: '124' },
+                    { brand: 'Not-A.Brand', version: '99' }
+                ],
+                mobile: false,
+                platform: 'macOS'
+            })
+        });
+    } catch (_) {}
+    "#.to_string()
+}
+
 fn tab_initialization_script(tab_id: u32) -> String {
+    let ua_js = get_user_agent_data_js();
     format!(
         r#"
         (function() {{
-            try {{
-                Object.defineProperty(navigator, 'vendor', {{ get: function() {{ return 'Google Inc.'; }} }});
-                Object.defineProperty(navigator, 'userAgentData', {{
-                    get: () => ({{
-                        brands: [
-                            {{ brand: 'Chromium', version: '124' }},
-                            {{ brand: 'Google Chrome', version: '124' }},
-                            {{ brand: 'Not-A.Brand', version: '99' }}
-                        ],
-                        mobile: false,
-                        platform: 'macOS'
-                    }})
-                }});
-            }} catch (_) {{}}
+            {ua_js}
             
             window.__ZENITH_TAB_ID = {tab_id};
             var send = function(payload) {{
@@ -830,7 +837,9 @@ fn tab_initialization_script(tab_id: u32) -> String {
                 send({{ type: 'image_context_menu', url: src, filename: filename, x: e.screenX, y: e.screenY }});
             }});
         }})();
-        "#
+        "#,
+        ua_js = ua_js,
+        tab_id = tab_id,
     )
 }
 
@@ -1081,20 +1090,29 @@ fn build_browser_tab(
             is_http_like_url(&next)
         })
         .with_new_window_req_handler(move |next, _features| {
-            if is_background_google_account_sync_url(&next) {
+            let next_url = next.clone();
+            if (is_background_google_account_sync_url(&next)) {
                 let _ = popup_proxy.send_event(UserEvent::OpenBackgroundAuthSync(next));
+                wry::NewWindowResponse::Deny
             } else if should_open_auth_window(&next) {
-                let _ = popup_proxy.send_event(UserEvent::NavigateTab {
-                    tab_id: Some(tab_id),
-                    url: next,
-                });
+                // Determine if this is a background-like redirect that should just navigate current tab
+                let Ok(parsed) = Url::parse(&next) else { return wry::NewWindowResponse::Deny };
+                let host = parsed.host_str().unwrap_or_default();
+                if host == "accounts.google.com" && (parsed.path().contains("checkcookie") || parsed.path().contains("rotatecookiespage")) {
+                    let _ = popup_proxy.send_event(UserEvent::NavigateTab { tab_id: Some(tab_id), url: next });
+                } else {
+                    let _ = popup_proxy.send_event(UserEvent::OpenAuthWindow(next));
+                }
+                wry::NewWindowResponse::Deny
             } else if is_http_like_url(&next) {
                 let _ = popup_proxy.send_event(UserEvent::NewTab {
                     url: Some(next),
                     activate: true,
                 });
+                wry::NewWindowResponse::Deny
+            } else {
+                wry::NewWindowResponse::Deny
             }
-            wry::NewWindowResponse::Deny
         })
         .with_document_title_changed_handler(move |title| {
             let _ = title_proxy.send_event(UserEvent::TabTitleChanged { tab_id, title });
@@ -1623,20 +1641,7 @@ fn main() {
                                     }
                                     wry::NewWindowResponse::Deny
                                 })
-                                .with_initialization_script(
-                                    r#"
-                                    try {
-                                        Object.defineProperty(navigator, 'vendor', { get: function() { return 'Google Inc.'; } });
-                                        Object.defineProperty(navigator, 'userAgentData', {
-                                            get: () => ({
-                                                brands: [ { brand: 'Chromium', version: '122' }, { brand: 'Microsoft Edge', version: '122' } ],
-                                                mobile: false,
-                                                platform: 'macOS'
-                                            })
-                                        });
-                                    } catch (_) {}
-                                    "#
-                                )
+                                .with_initialization_script(&get_user_agent_data_js())
                                 .build(&auth_window)
                     {
                         auth_windows.push(AuthWindow {
@@ -1670,6 +1675,7 @@ fn main() {
                                 }
                                 wry::NewWindowResponse::Deny
                             })
+                            .with_initialization_script(&get_user_agent_data_js())
                             .build_as_child(&window)
                         {
                             let _ = bg_webview.set_visible(false);
