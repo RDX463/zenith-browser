@@ -792,6 +792,11 @@ fn main() {
                 if let Some(target_id) = tab_id.or(active_tab_id) {
                     let next_url = normalize_user_input_url(&url);
                     if !(next_url.starts_with("zenith://") && !is_assets_url(&next_url)) {
+                        if should_warmup_youtube_account_sync(&next_url) {
+                            let _ = proxy.send_event(UserEvent::OpenBackgroundAuthSync(
+                                "https://accounts.google.com/RotateCookiesPage".to_string(),
+                            ));
+                        }
                         if let Some(tab) = tabs.iter_mut().find(|t| t.id == target_id) {
                             tab.url = next_url.clone();
                             tab.title = fallback_title_for_url(&next_url);
