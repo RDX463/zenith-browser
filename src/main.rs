@@ -163,12 +163,15 @@ struct IpcMessage {
 }
 
 #[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 struct Suggestion {
     title: String,
     #[serde(default)]
     url: Option<String>,
     #[serde(rename = "type")]
-    suggestion_type: String, // "history", "bookmark", "search"
+    suggestion_type: String, // "history", "bookmark", "search", "tab"
+    #[serde(default)]
+    tab_id: Option<u32>,
 }
 
 struct BrowserTab {
@@ -2287,7 +2290,7 @@ fn main() {
                 }
             }
             Event::UserEvent(UserEvent::GetSuggestions(query)) => {
-                fetch_suggestions(query, &recent_sites, &bookmarks, proxy.clone());
+                fetch_suggestions(query, &recent_sites, &bookmarks, &tabs, proxy.clone());
             }
             Event::UserEvent(UserEvent::SuggestionResults(results)) => {
                 let js = format!("if (window.zenithSetSuggestions) window.zenithSetSuggestions({});", serde_json::to_string(&results).unwrap());
@@ -2302,21 +2305,39 @@ fn fetch_suggestions(
     query: String,
     recent_sites: &[RecentSite],
     bookmarks: &[BookmarkSite],
+    tabs: &[BrowserTab],
     proxy: EventLoopProxy<UserEvent>,
 ) {
     let query_lc = query.to_lowercase();
     let mut results = Vec::new();
 
-    // 1. Bookmarks (High priority)
-    for b in bookmarks {
-        if b.url.to_lowercase().contains(&query_lc) || b.title.to_lowercase().contains(&query_lc) {
+    // 0. Switch to Tab (Highest priority)
+    for tab in tabs {
+        if tab.title.to_lowercase().contains(&query_lc) || tab.url.to_lowercase().contains(&query_lc) {
             results.push(Suggestion {
-                title: b.title.clone(),
-                url: Some(b.url.clone()),
-                suggestion_type: "bookmark".to_string(),
+                title: tab.title.clone(),
+                url: Some(tab.url.clone()),
+                suggestion_type: "tab".to_string(),
+                tab_id: Some(tab.id),
             });
         }
-        if results.len() >= 4 { break; }
+        if results.len() >= 3 { break; }
+    }
+
+    // 1. Bookmarks
+    for b in bookmarks {
+        if b.url.to_lowercase().contains(&query_lc) || b.title.to_lowercase().contains(&query_lc) {
+            // Avoid duplicates with tabs
+            if !results.iter().any(|r| r.url.as_ref() == Some(&b.url)) {
+                results.push(Suggestion {
+                    title: b.title.clone(),
+                    url: Some(b.url.clone()),
+                    suggestion_type: "bookmark".to_string(),
+                    tab_id: None,
+                });
+            }
+        }
+        if results.len() >= 5 { break; }
     }
 
     // 2. History
@@ -2328,6 +2349,7 @@ fn fetch_suggestions(
                     title: s.title.clone(),
                     url: Some(s.url.clone()),
                     suggestion_type: "history".to_string(),
+                    tab_id: None,
                 });
             }
         }
@@ -2353,6 +2375,7 @@ fn fetch_suggestions(
                                         title: s_str.clone(),
                                         url: None,
                                         suggestion_type: "search".to_string(),
+                                        tab_id: None,
                                     });
                                 }
                             }
