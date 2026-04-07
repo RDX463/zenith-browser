@@ -76,6 +76,8 @@ enum UserEvent {
         query: String,
         forward: bool,
     },
+    MenuAction(muda::MenuId),
+    OpenFindBar,
 }
 
 #[derive(Clone, Copy)]
@@ -1054,9 +1056,17 @@ fn build_browser_tab(
             let _ = load_proxy.send_event(UserEvent::TabUrlChanged { tab_id, url });
         })
         .with_download_started_handler(move |url, path| {
+            // If wry doesn't set a path, force it to ~/Downloads/<filename>
+            if path.as_os_str().is_empty() {
+                if let Some(filename) = url.split('/').last().and_then(|f| if f.is_empty() { None } else { Some(f) }) {
+                    let dl_dir = dirs::download_dir().unwrap_or_else(|| std::path::PathBuf::from("/tmp"));
+                    *path = dl_dir.join(filename.split('?').next().unwrap_or(filename));
+                }
+            }
+            let path_str = path.to_string_lossy().to_string();
             let _ = download_start_proxy.send_event(UserEvent::DownloadStarted {
                 url,
-                path: path.to_string_lossy().to_string(),
+                path: path_str,
             });
             true
         })
@@ -1242,7 +1252,12 @@ fn main() {
     #[cfg(target_os = "macos")]
     menu_bar.init_for_nsapp();
 
-    let menu_channel = muda::MenuEvent::receiver();
+    // Route ALL menu events through EventLoopProxy so they wake the event loop
+    // regardless of which window/webview has focus.
+    let menu_proxy = proxy.clone();
+    muda::MenuEvent::set_event_handler(Some(move |e: muda::MenuEvent| {
+        let _ = menu_proxy.send_event(UserEvent::MenuAction(e.id));
+    }));
 
     // Context menu (for dots button - shared items)
     let dots_menu = Menu::new();
@@ -1273,27 +1288,27 @@ fn main() {
     event_loop.run(move |event, event_loop_target, control_flow| {
         *control_flow = ControlFlow::Wait;
 
-        if let Ok(event) = menu_channel.try_recv() {
-            if event.id == m_new_tab.id() {
+        if let Event::UserEvent(UserEvent::MenuAction(ref menu_id)) = event {
+            if *menu_id == m_new_tab.id() {
                 let _ = proxy.send_event(UserEvent::NewTab { url: None, activate: true });
-            }
-            else if event.id == m_close_tab.id() {
+            } else if *menu_id == m_close_tab.id() {
                 let _ = proxy.send_event(UserEvent::CloseTab(active_tab_id));
-            }
-            else if event.id == m_bookmark.id() { let _ = proxy.send_event(UserEvent::BookmarkActiveTab(active_tab_id)); }
-            else if event.id == m_history.id() { let _ = proxy.send_event(UserEvent::OpenHistoryTab); }
-            else if event.id == m_downloads.id() { let _ = proxy.send_event(UserEvent::OpenDownloadsTab); }
-            else if event.id == m_find.id() {
-                let _ = chrome_webview.evaluate_script("if (window.zenithOpenFind) window.zenithOpenFind();");
-            }
-            else if event.id == m_reload.id() {
+            } else if *menu_id == m_bookmark.id() {
+                let _ = proxy.send_event(UserEvent::BookmarkActiveTab(active_tab_id));
+            } else if *menu_id == m_history.id() {
+                let _ = proxy.send_event(UserEvent::OpenHistoryTab);
+            } else if *menu_id == m_downloads.id() {
+                let _ = proxy.send_event(UserEvent::OpenDownloadsTab);
+            } else if *menu_id == m_find.id() {
+                let _ = proxy.send_event(UserEvent::OpenFindBar);
+            } else if *menu_id == m_reload.id() {
                 let _ = proxy.send_event(UserEvent::TabAction { tab_id: active_tab_id, action: BrowserAction::Reload });
-            }
-            else if event.id == m_theme.id() {
+            } else if *menu_id == m_theme.id() {
                 let next = if current_theme == "light" { "dark" } else { "light" };
                 let _ = proxy.send_event(UserEvent::SettingsChanged { key: "theme".to_string(), value: next.to_string() });
+            } else if *menu_id == m_settings.id() {
+                let _ = proxy.send_event(UserEvent::OpenSettingsTab);
             }
-            else if event.id == m_settings.id() { let _ = proxy.send_event(UserEvent::OpenSettingsTab); }
         }
 
         let _keep_context_alive = &web_context;
@@ -1745,6 +1760,12 @@ fn main() {
                         let _ = tab.webview.evaluate_script(&js);
                     }
                 }
+            }
+            Event::UserEvent(UserEvent::OpenFindBar) => {
+                let _ = chrome_webview.evaluate_script("if (window.zenithOpenFind) window.zenithOpenFind();");
+            }
+            Event::UserEvent(UserEvent::MenuAction(_)) => {
+                // Already handled above before the match
             }
             _ => {}
         }
