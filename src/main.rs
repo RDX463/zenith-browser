@@ -1605,7 +1605,7 @@ fn main() {
     let palette_protocol_html = final_ui_html.clone();
     let palette_webview = WebViewBuilder::new_with_web_context(&mut web_context)
         .with_transparent(true)
-        .with_background_color((28, 29, 34, 0))
+        .with_background_color((28, 29, 34, 255))
         .with_visible(false)
         .with_bounds(palette_bounds_for_window(&window))
         .with_url("zenith://assets/ui?mode=palette")
@@ -2342,7 +2342,6 @@ fn main() {
             }
             Event::UserEvent(UserEvent::SuggestionsShown) => {
                 let _ = palette_webview.set_visible(true);
-                let _ = palette_webview.focus();
             }
             Event::UserEvent(UserEvent::SuggestionsHidden) => {
                 let _ = palette_webview.set_visible(false);
