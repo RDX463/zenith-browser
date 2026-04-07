@@ -638,6 +638,11 @@ fn build_browser_tab(
                     tab_id: Some(tab_id),
                     url: next,
                 });
+            } else if is_http_like_url(&next) {
+                let _ = popup_proxy.send_event(UserEvent::NewTab {
+                    url: Some(next),
+                    activate: true,
+                });
             }
             wry::NewWindowResponse::Deny
         })
