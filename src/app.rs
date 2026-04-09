@@ -37,6 +37,7 @@ pub struct BrowserApp {
     pub menu: AppMenu,
     pub img_ctx: Arc<Mutex<Option<(String, String)>>>,
     pub final_ui_html: Arc<String>,
+    pub current_search_url: String,
 }
 
 impl BrowserApp {
@@ -48,6 +49,7 @@ impl BrowserApp {
         let bookmarks = load_bookmarks();
         let downloads = load_downloads();
         let current_theme = "dark".to_string();
+        let current_search_url = "https://www.google.com/search?q={}".to_string();
 
         let window = tao::window::WindowBuilder::new()
             .with_title("Zenith")
@@ -115,6 +117,7 @@ impl BrowserApp {
             menu,
             img_ctx: Arc::new(Mutex::new(None)),
             final_ui_html,
+            current_search_url,
         };
 
         app.new_tab(None, true, proxy);
@@ -161,7 +164,7 @@ impl BrowserApp {
     }
 
     pub fn new_tab(&mut self, url: Option<String>, activate: bool, proxy: &EventLoopProxy<UserEvent>) {
-        let start_url = normalize_user_input_url(url.as_deref().unwrap_or(HOME_URL), "https://www.google.com/search?q={}");
+        let start_url = normalize_user_input_url(url.as_deref().unwrap_or(HOME_URL), &self.current_search_url);
 
         if let Some(tab) = build_browser_tab(
             &self.window,
@@ -236,7 +239,7 @@ impl BrowserApp {
 
     pub fn navigate_tab(&mut self, tab_id: Option<u32>, url: String, proxy: &EventLoopProxy<UserEvent>) {
         if let Some(target_id) = tab_id.or(self.active_tab_id) {
-            let next_url = normalize_user_input_url(&url, "https://www.google.com/search?q={}");
+            let next_url = normalize_user_input_url(&url, &self.current_search_url);
             if !(next_url.starts_with("zenith://") && !is_assets_url(&next_url)) {
                 if should_warmup_youtube_account_sync(&next_url) {
                     let _ = proxy.send_event(UserEvent::OpenBackgroundAuthSync(

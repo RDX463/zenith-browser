@@ -216,6 +216,12 @@ fn main() {
                 if key == "theme" {
                     app.current_theme = value.clone();
                     for tab in &app.tabs { BrowserApp::apply_theme_to_webview(&tab.webview, &app.current_theme); }
+                } else if key == "searchEngine" || key == "search_engine" {
+                    app.current_search_url = match value.as_str() {
+                        "duckduckgo" => "https://duckduckgo.com/?q={}".to_string(),
+                        "bing" => "https://www.bing.com/search?q={}".to_string(),
+                        _ => "https://www.google.com/search?q={}".to_string(),
+                    };
                 }
                 let k_json = serde_json::to_string(&key).unwrap();
                 let v_json = serde_json::to_string(&value).unwrap();
