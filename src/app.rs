@@ -72,6 +72,7 @@ impl BrowserApp {
         let chrome_webview = WebViewBuilder::new_with_web_context(&mut web_context)
             .with_bounds(Self::chrome_bounds(&window))
             .with_url("zenith://assets/ui")
+            .with_devtools(true)
             .with_navigation_handler(|url| is_assets_url(&url))
             .with_custom_protocol("zenith".into(), move |_id, request| {
                 handle_zenith_request(chrome_protocol_html.as_str(), request)
@@ -88,6 +89,7 @@ impl BrowserApp {
             .with_transparent(true)
             .with_background_color((28, 29, 34, 0))
             .with_visible(false)
+            .with_devtools(true)
             .with_bounds(Self::palette_bounds(&window))
             .with_url("zenith://assets/ui?mode=palette")
             .with_custom_protocol("zenith".into(), move |_id, request| {

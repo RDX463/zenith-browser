@@ -56,6 +56,12 @@ fn main() {
                 if let Some((url, _)) = img_data {
                     app.new_tab(Some(url), true, &proxy);
                 }
+            } else if *menu_id == app.menu.m_inspect.id() {
+                if let Some(tab_id) = app.active_tab_id {
+                    if let Some(tab) = app.tabs.iter().find(|t| t.id == tab_id) {
+                        tab.webview.open_devtools();
+                    }
+                }
             }
         }
 

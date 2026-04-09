@@ -14,6 +14,7 @@ pub struct AppMenu {
     pub m_reload: MenuItem,
     pub img_save: MenuItem,
     pub img_open: MenuItem,
+    pub m_inspect: MenuItem,
     pub dots_menu: Menu,
     pub img_menu: Menu,
 }
@@ -75,6 +76,7 @@ impl AppMenu {
         let m_downloads = MenuItem::new("Downloads", true, Some(Accelerator::new(Some(Modifiers::SUPER), Code::KeyJ)));
         let m_theme = CheckMenuItem::new("Light Mode", true, current_theme == "light", None);
         let m_reload = MenuItem::new("Reload Page", true, Some(Accelerator::new(Some(Modifiers::SUPER), Code::KeyR)));
+        let m_inspect = MenuItem::new("Inspect Element", true, Some(Accelerator::new(Some(Modifiers::SUPER | Modifiers::ALT), Code::KeyI)));
         view_menu.append_items(&[
             &m_reload,
             &PredefinedMenuItem::separator(),
@@ -82,6 +84,8 @@ impl AppMenu {
             &m_downloads,
             &PredefinedMenuItem::separator(),
             &m_theme,
+            &PredefinedMenuItem::separator(),
+            &m_inspect,
         ]).unwrap();
 
         menu_bar.append_items(&[&tab_menu, &edit_menu, &view_menu]).unwrap();
@@ -92,6 +96,8 @@ impl AppMenu {
             &m_new_tab, &m_bookmark, &m_history, &m_downloads,
             &muda::PredefinedMenuItem::separator(),
             &m_find, &m_theme,
+            &muda::PredefinedMenuItem::separator(),
+            &m_inspect,
             &muda::PredefinedMenuItem::separator(),
             &m_close_tab,
         ]).unwrap();
@@ -115,6 +121,7 @@ impl AppMenu {
             m_reload,
             img_save,
             img_open,
+            m_inspect,
             dots_menu,
             img_menu,
         }
