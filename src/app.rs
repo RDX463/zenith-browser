@@ -358,57 +358,57 @@ impl BrowserApp {
             });
         }
 
-        std::thread::spawn(move || {
-            let query = query.trim().to_string();
-            if query.is_empty() {
-                let _ = proxy.send_event(UserEvent::SuggestionResults(Vec::new()));
-                return;
-            }
+        tokio::spawn(async move {
+            let results = tokio::task::spawn_blocking(move || {
+                let query = query.trim().to_string();
+                if query.is_empty() {
+                    return Vec::new();
+                }
 
-            let query_lc = query.to_lowercase();
-            let mut results: Vec<Suggestion> = Vec::new();
+                let query_lc = query.to_lowercase();
+                let mut results: Vec<Suggestion> = Vec::new();
 
-
-
-            // 2. Tabs
-            for t in tabs_snapshot {
-                if results.len() >= 8 { break; }
-                if t.title.to_lowercase().contains(&query_lc) || t.url.as_ref().map(|u| u.to_lowercase()).unwrap_or_default().contains(&query_lc) {
-                    if !results.iter().any(|r| r.title == t.title) {
-                        results.push(t);
+                // 1. Tabs
+                for t in tabs_snapshot {
+                    if results.len() >= 8 { break; }
+                    if t.title.to_lowercase().contains(&query_lc) || t.url.as_ref().map(|u| u.to_lowercase()).unwrap_or_default().contains(&query_lc) {
+                        if !results.iter().any(|r| r.title == t.title) {
+                            results.push(t);
+                        }
                     }
                 }
-            }
 
-            // 3. Bookmarks
-            for b in &bookmarks {
-                if results.len() >= 12 { break; }
-                if b.url.to_lowercase().contains(&query_lc) || b.title.to_lowercase().contains(&query_lc) {
-                    if !results.iter().any(|r| r.url.as_ref() == Some(&b.url)) {
-                        results.push(Suggestion {
-                            title: b.title.clone(),
-                            url: Some(b.url.clone()),
-                            suggestion_type: "bookmark".to_string(),
-                            tab_id: None,
-                        });
+                // 2. Bookmarks
+                for b in &bookmarks {
+                    if results.len() >= 12 { break; }
+                    if b.url.to_lowercase().contains(&query_lc) || b.title.to_lowercase().contains(&query_lc) {
+                        if !results.iter().any(|r| r.url.as_ref() == Some(&b.url)) {
+                            results.push(Suggestion {
+                                title: b.title.clone(),
+                                url: Some(b.url.clone()),
+                                suggestion_type: "bookmark".to_string(),
+                                tab_id: None,
+                            });
+                        }
                     }
                 }
-            }
 
-            // 4. History
-            for s in &recent_sites {
-                if results.len() >= 15 { break; }
-                if s.url.to_lowercase().contains(&query_lc) || s.title.to_lowercase().contains(&query_lc) {
-                    if !results.iter().any(|r| r.url.as_ref() == Some(&s.url)) {
-                        results.push(Suggestion {
-                            title: s.title.clone(),
-                            url: Some(s.url.clone()),
-                            suggestion_type: "history".to_string(),
-                            tab_id: None,
-                        });
+                // 3. History
+                for s in &recent_sites {
+                    if results.len() >= 15 { break; }
+                    if s.url.to_lowercase().contains(&query_lc) || s.title.to_lowercase().contains(&query_lc) {
+                        if !results.iter().any(|r| r.url.as_ref() == Some(&s.url)) {
+                            results.push(Suggestion {
+                                title: s.title.clone(),
+                                url: Some(s.url.clone()),
+                                suggestion_type: "history".to_string(),
+                                tab_id: None,
+                            });
+                        }
                     }
                 }
-            }
+                results
+            }).await.unwrap_or_default();
 
             let _ = proxy.send_event(UserEvent::SuggestionResults(results));
         });

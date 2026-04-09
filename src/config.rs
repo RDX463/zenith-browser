@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
+use tokio::fs as async_fs;
 use std::path::PathBuf;
 use crate::utils::resolved_tab_title;
 
@@ -64,6 +65,22 @@ pub fn load_downloads() -> Vec<DownloadEntry> {
         return Vec::new();
     };
     serde_json::from_str::<Vec<DownloadEntry>>(&raw).unwrap_or_default()
+}
+
+pub async fn load_recent_sites_async() -> Vec<RecentSite> {
+    let path = recent_sites_path();
+    let Ok(raw) = async_fs::read_to_string(path).await else {
+        return Vec::new();
+    };
+    serde_json::from_str::<Vec<RecentSite>>(&raw).unwrap_or_default()
+}
+
+pub async fn load_bookmarks_async() -> Vec<BookmarkSite> {
+    let path = bookmarks_path();
+    let Ok(raw) = async_fs::read_to_string(path).await else {
+        return Vec::new();
+    };
+    serde_json::from_str::<Vec<BookmarkSite>>(&raw).unwrap_or_default()
 }
 
 pub fn save_recent_sites(recent_sites: &[RecentSite]) {

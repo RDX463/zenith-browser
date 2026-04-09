@@ -13,3 +13,4 @@ percent-encoding = "2.3"
 url = "2.5"
 dirs = "5.0"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
+tokio = { version = "1.37", features = ["full"] }

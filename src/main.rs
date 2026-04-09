@@ -17,7 +17,8 @@ use config::{save_recent_sites, save_downloads, record_download_started, record_
 use utils::{should_track_recent_site, fallback_title_for_url, resolved_tab_title, should_warmup_youtube_account_sync};
 use muda::ContextMenu;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
     let proxy = event_loop.create_proxy();
 
