@@ -448,12 +448,12 @@ body.mode-palette .suggestions-dropdown {
     width: 640px;
     max-height: calc(100vh - 160px);
     overflow-y: auto;
-    background: rgba(18, 22, 33, 0.94);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(18, 22, 33, 0.85); /* Slightly more translucent */
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
-    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
     z-index: 10000;
-    backdrop-filter: blur(40px);
+    backdrop-filter: blur(30px) saturate(150%);
     animation: paletteIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     padding: 8px 0;
     pointer-events: auto;
@@ -462,9 +462,10 @@ body.mode-palette .suggestions-dropdown {
 }
 
 [data-theme="light"] .suggestions-dropdown {
-    background: rgba(248, 250, 252, 0.96);
-    border-color: rgba(0, 0, 0, 0.08);
-    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(30px);
 }
 
 @keyframes paletteIn {
