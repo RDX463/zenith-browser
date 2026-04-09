@@ -4,8 +4,8 @@
 
 /* ── Design tokens ───────────────────────────────────────────────────────── */
 :root, [data-theme="dark"], [data-theme="zenith-dark"] {
-    --chrome:        #1c1d22;
-    --chrome-border: rgba(255,255,255,0.07);
+    --chrome:        rgba(28, 29, 34, 0.75);
+    --chrome-border: rgba(255,255,255,0.12);
     --tab-bg:        rgba(255,255,255,0.04);
     --tab-active-bg: #2a2c33;
     --input-bg:      #23252c;
@@ -20,8 +20,8 @@
 }
 
 [data-theme="light"], [data-theme="zenith-light"] {
-    --chrome:        #f4f5f8;
-    --chrome-border: rgba(0,0,0,0.08);
+    --chrome:        rgba(244, 245, 248, 0.75);
+    --chrome-border: rgba(0,0,0,0.12);
     --tab-bg:        rgba(0,0,0,0.04);
     --tab-active-bg: #ffffff;
     --input-bg:      #e8ebf2;
@@ -117,6 +117,8 @@ html, body {
 #ui-shell {
     flex-shrink: 0; z-index: 100;
     background: var(--chrome);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border-bottom: 1px solid var(--chrome-border);
     height: 82px;
     pointer-events: auto;
@@ -124,14 +126,16 @@ html, body {
 
 .suggestions-dropdown {
     position: absolute;
-    top: 82px;
+    top: 86px;
     left: 50%;
     transform: translateX(-50%);
     width: 640px;
     background: var(--chrome);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border: 1.5px solid var(--accent);
-    border-radius: 0 0 16px 16px;
-    box-shadow: var(--shadow);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
     z-index: 1000;
     overflow: hidden;
     pointer-events: auto;
