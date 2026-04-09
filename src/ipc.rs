@@ -37,6 +37,7 @@ pub struct ChromeState {
     pub active_id: Option<u32>,
 }
 
+#[derive(Debug)]
 pub enum UserEvent {
     ChromeReady,
     NewTab {
@@ -166,7 +167,6 @@ pub fn dispatch_ipc_message(
     proxy: &EventLoopProxy<UserEvent>,
     fallback_tab_id: Option<u32>,
 ) {
-    println!("DEBUG [IPC]: Incoming - {}", raw);
     let Ok(message) = serde_json::from_str::<IpcMessage>(raw) else {
         return;
     };

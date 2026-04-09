@@ -235,7 +235,7 @@
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <input id="filter-input" type="text" placeholder="Search history by title or URL">
+        <input id="filter-input" type="text" placeholder="Search history by title or URL" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     </div>
 
     <div id="history-list" class="list">
@@ -316,7 +316,19 @@ function renderHistory(filterText = '') {
 }
 
 document.getElementById('filter-input').addEventListener('input', (e) => {
+    const rawValue = e.target.value;
+    const sanitized = rawValue.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
+    if (rawValue !== sanitized) {
+        const start = e.target.selectionStart;
+        const end = e.target.selectionEnd;
+        e.target.value = sanitized;
+        e.target.setSelectionRange(start, end);
+    }
     renderHistory(e.target.value || '');
+});
+
+document.getElementById('filter-input').addEventListener('keydown', (e) => {
+    if (e.key.startsWith('Arrow')) e.stopPropagation();
 });
 
 document.getElementById('clear-btn').addEventListener('click', () => {

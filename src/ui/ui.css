@@ -100,14 +100,17 @@
 }
 
 /* ── Layout ──────────────────────────────────────────────────────────────── */
-html { background: rgba(0,0,0,0) !important; border: none !important; outline: none !important; }
-body {
-    width: 100%; height: 100%; overflow: hidden;
-    background: rgba(0,0,0,0) !important;
-    display: flex; flex-direction: column;
-    font-family: 'Inter', system-ui, sans-serif;
+html, body {
+    margin: 0;
+    padding: 0;
+    background: transparent !important; /* Force root transparency */
+    background-color: transparent !important;
+    overflow: hidden;
+    color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
-    pointer-events: none;
+    user-select: none;
+    pointer-events: none; /* Full-window overlay click-through */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* ── Chrome shell ────────────────────────────────────────────────────────── */
@@ -119,17 +122,19 @@ body {
     pointer-events: auto;
 }
 
-/* Mode handling for Split UI */
-body.mode-palette { pointer-events: auto; background: transparent !important; }
-body.mode-palette #ui-shell { display: none; }
-body.mode-palette .suggestions-dropdown {
+.suggestions-dropdown {
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    width: 100%; height: 100%;
-    transform: none;
-    margin: 0;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    top: 82px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 640px;
+    background: var(--chrome);
+    border: 1.5px solid var(--accent);
+    border-radius: 0 0 16px 16px;
+    box-shadow: var(--shadow);
+    z-index: 1000;
+    overflow: hidden;
+    pointer-events: auto;
 }
 
 /* ── Tab bar ─────────────────────────────────────────────────────────────── */
@@ -249,8 +254,7 @@ body.mode-palette .suggestions-dropdown {
 
 /* ── Content area ────────────────────────────────────────────────────────── */
 #tabs-content { flex: 1; position: relative; background: #15161a; }
-[data-theme="light"] #tabs-content { background: #ffffff; }
-[data-theme="light"] body { background: #ffffff; }
+
 
 ::selection {
     background: rgba(99, 102, 241, 0.2);
@@ -442,30 +446,26 @@ body.mode-palette .suggestions-dropdown {
 /* ── Command Palette (Omnibox Upgrade) ────────────────────────────────────── */
 .suggestions-dropdown {
     position: fixed;
-    top: 96px;
+    top: 82px;
     left: 50%;
     transform: translateX(-50%);
     width: 640px;
     max-height: calc(100vh - 160px);
     overflow-y: auto;
-    background: rgba(18, 22, 33, 0.85); /* Slightly more translucent */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    background: #1c1d22; /* Solid high-visibility background */
+    border: 1.5px solid var(--accent); /* Prominent border */
+    border-radius: 0 0 16px 16px; /* Flat top to sit flush with bar */
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); /* Tighter shadow for cleaner look */
     z-index: 10000;
     backdrop-filter: blur(30px) saturate(150%);
     animation: paletteIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    padding: 8px 0;
-    pointer-events: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.1) transparent;
+    pointer-events: all;
 }
 
 [data-theme="light"] .suggestions-dropdown {
-    background: rgba(255, 255, 255, 0.85);
-    border-color: rgba(0, 0, 0, 0.1);
-    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(30px);
+    background: #ffffff; /* Solid white for light mode */
+    border-color: #0066ff; /* High-contrast blue for light mode visibility */
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
 @keyframes paletteIn {

@@ -1,387 +1,457 @@
 <!DOCTYPE html>
-<html lang="en" style="background: #1c1d22 !important;">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <script>
-        (function() {
+        (function () {
             const theme = localStorage.getItem('zenith-theme') || 'zenith-dark';
             document.documentElement.setAttribute('data-theme', theme);
-            const isLight = theme.includes('light');
-            document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
         })();
     </script>
     <title>Zenith</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="ui.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap"
+        rel="stylesheet">
 </head>
-<body style="background: #1c1d22 !important;">
-<div id="ui-shell">
-    <div class="tabs-bar" id="tabs-bar">
-        <button id="new-tab-btn" class="icon-btn" title="New Tab (⌘T)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
-    </div>
-    <div class="toolbar">
-        <div class="nav-buttons">
-            <button id="back-btn" class="nav-btn" title="Back (⌘[)" disabled>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-            </button>
-            <button id="forward-btn" class="nav-btn" title="Forward (⌘])" disabled>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-            </button>
-            <button id="reload-btn" class="nav-btn" title="Reload (⌘R)" disabled>
-                <svg id="icon-reload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+
+<body>
+    <div id="ui-shell">
+        <div class="tabs-bar" id="tabs-bar">
+            <button id="new-tab-btn" class="icon-btn" title="New Tab (⌘T)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
             </button>
         </div>
-        <div class="address-bar-wrap" id="address-bar-wrap">
-            <div id="permission-box" class="permission-box">
-                <span id="perm-camera" class="perm-icon" title="Camera in use"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
-                <span id="perm-microphone" class="perm-icon" title="Microphone in use"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span>
-                <span id="perm-geolocation" class="perm-icon" title="Location in use"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
-                <span id="perm-notifications" class="perm-icon" title="Notifications active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+        <div class="toolbar">
+            <div class="nav-buttons">
+                <button id="back-btn" class="nav-btn" title="Back (⌘[)" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="m15 18-6-6 6-6" />
+                    </svg>
+                </button>
+                <button id="forward-btn" class="nav-btn" title="Forward (⌘])" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </button>
+                <button id="reload-btn" class="nav-btn" title="Reload (⌘R)" disabled>
+                    <svg id="icon-reload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                        <path d="M21 3v5h-5" />
+                    </svg>
+                </button>
             </div>
-            <svg id="search-icon" class="addr-icon search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="url-input" placeholder="Search or enter URL" spellcheck="false" autocomplete="off" autofocus>
-            <button id="bookmark-btn" class="addr-btn" title="Bookmark (⌘D)">
-                <svg id="bookmark-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></polygon></svg>
+            <div class="address-bar-wrap" id="address-bar-wrap">
+                <div id="permission-box" class="permission-box">
+                    <span id="perm-camera" class="perm-icon" title="Camera in use"><svg viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                            <circle cx="12" cy="13" r="4" />
+                        </svg></span>
+                    <span id="perm-microphone" class="perm-icon" title="Microphone in use"><svg viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                            <line x1="12" y1="19" x2="12" y2="23" />
+                            <line x1="8" y1="23" x2="16" y2="23" />
+                        </svg></span>
+                    <span id="perm-geolocation" class="perm-icon" title="Location in use"><svg viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                        </svg></span>
+                    <span id="perm-notifications" class="perm-icon" title="Notifications active"><svg
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                        </svg></span>
+                </div>
+                <svg id="search-icon" class="addr-icon search-icon" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input type="text" id="url-input" placeholder="Search or enter URL" spellcheck="false"
+                    autocomplete="off" autocorrect="off" autocapitalize="off" autofocus>
+                <button id="bookmark-btn" class="addr-btn" title="Bookmark (⌘D)">
+                    <svg id="bookmark-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polygon
+                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </polygon>
+                    </svg>
+                </button>
+            </div>
+            <button id="settings-btn" class="icon-btn" title="Menu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="1" />
+                    <circle cx="19" cy="12" r="1" />
+                    <circle cx="5" cy="12" r="1" />
+                </svg>
             </button>
         </div>
-        <button id="settings-btn" class="icon-btn" title="Menu">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-        </button>
     </div>
-</div>
 
-<div id="suggestions-dropdown" class="suggestions-dropdown hidden"></div>
+    <div id="suggestions-dropdown" class="suggestions-dropdown hidden"></div>
 
-<div id="permission-bar" class="permission-bar hidden">
-    <div class="perm-bar-content">
-        <div class="perm-bar-icon" id="perm-type-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <div id="permission-bar" class="permission-bar hidden">
+        <div class="perm-bar-content">
+            <div class="perm-bar-icon" id="perm-type-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+            </div>
+            <div class="perm-bar-text" id="perm-text">Allow website to access your camera?</div>
+            <div class="perm-bar-actions">
+                <button onclick="decidePermission('denied')" class="btn-perm btn-deny">Deny</button>
+                <button onclick="decidePermission('granted')" class="btn-perm btn-allow">Allow</button>
+            </div>
         </div>
-        <div class="perm-bar-text" id="perm-text">Allow website to access your camera?</div>
-        <div class="perm-bar-actions">
-            <button onclick="decidePermission('denied')" class="btn-perm btn-deny">Deny</button>
-            <button onclick="decidePermission('granted')" class="btn-perm btn-allow">Allow</button>
+    </div>
+
+    <div id="find-bar" class="find-bar hidden">
+        <div class="find-input-wrap">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" id="find-input" placeholder="Find in page..." spellcheck="false" autocomplete="off">
+        </div>
+        <div class="find-actions">
+            <button id="find-prev" class="find-btn" title="Previous (⇧⌘G)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="m18 15-6-6-6 6" />
+                </svg>
+            </button>
+            <button id="find-next" class="find-btn" title="Next (⌘G)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="m6 9 6 6 6-6" />
+                </svg>
+            </button>
+            <button id="find-close" class="find-btn find-close" title="Close (Esc)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+            </button>
         </div>
     </div>
-</div>
 
-<div id="find-bar" class="find-bar hidden">
-    <div class="find-input-wrap">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="find-input" placeholder="Find in page..." spellcheck="false" autocomplete="off">
-    </div>
-    <div class="find-actions">
-        <button id="find-prev" class="find-btn" title="Previous (⇧⌘G)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
-        </button>
-        <button id="find-next" class="find-btn" title="Next (⌘G)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
-        <button id="find-close" class="find-btn find-close" title="Close (Esc)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-        </button>
-    </div>
-</div>
+    <div id="toast-container" class="toast-container"></div>
 
-<div id="toast-container" class="toast-container"></div>
+    <script>
+        const tabsBar = document.getElementById('tabs-bar');
+        const urlInput = document.getElementById('url-input');
+        const newTabBtn = document.getElementById('new-tab-btn');
+        const settBtn = document.getElementById('settings-btn');
+        const backBtn = document.getElementById('back-btn');
+        const findBar = document.getElementById('find-bar');
+        const findInput = document.getElementById('find-input');
+        const findNextBtn = document.getElementById('find-next');
+        const findPrevBtn = document.getElementById('find-prev');
+        const findCloseBtn = document.getElementById('find-close');
+        const fwdBtn = document.getElementById('forward-btn');
+        const reloadBtn = document.getElementById('reload-btn');
+        const bookmarkBtn = document.getElementById('bookmark-btn');
+        const bookmarkIcon = document.getElementById('bookmark-icon');
+        const suggestionsDropdown = document.getElementById('suggestions-dropdown');
 
-<script>
-const tabsBar   = document.getElementById('tabs-bar');
-const urlInput  = document.getElementById('url-input');
-const newTabBtn = document.getElementById('new-tab-btn');
-const settBtn   = document.getElementById('settings-btn');
-const backBtn   = document.getElementById('back-btn');
-const findBar   = document.getElementById('find-bar');
-const findInput = document.getElementById('find-input');
-const findNextBtn = document.getElementById('find-next');
-const findPrevBtn = document.getElementById('find-prev');
-const findCloseBtn = document.getElementById('find-close');
-const fwdBtn    = document.getElementById('forward-btn');
-const reloadBtn = document.getElementById('reload-btn');
-const bookmarkBtn = document.getElementById('bookmark-btn');
-const bookmarkIcon = document.getElementById('bookmark-icon');
-const suggestionsDropdown = document.getElementById('suggestions-dropdown');
+        let currentSuggestions = [];
+        let selectedSuggestionIndex = -1;
+        let debounceTimer = null;
+        let suggestionsVisible = false;
 
-let currentSuggestions = [];
-let selectedSuggestionIndex = -1;
-let debounceTimer = null;
-
-const urlParams = new URLSearchParams(window.location.search);
-const isPaletteMode = urlParams.get('mode') === 'palette';
-if (isPaletteMode) {
-    document.body.classList.add('mode-palette');
-}
-
-const HOME_URL = 'zenith://assets/home';
-const SETTINGS_URL = 'zenith://assets/settings';
-const SEARCH_ENGINES = {
-    google: (q) => `https://www.google.com/search?igu=1&q=${encodeURIComponent(q)}`,
-    duckduckgo: (q) => `https://duckduckgo.com/?q=${encodeURIComponent(q)}`,
-    bing: (q) => `https://www.bing.com/search?q=${encodeURIComponent(q)}`
-};
-
-let tabs = [];
-let activeId = null;
-let darkMode = (() => {
-    const saved = localStorage.getItem('zenith-theme');
-    if (saved === 'light' || saved === 'dark') {
-        return saved === 'dark';
-    }
-    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-})();
-
-function send(payload) {
-    try {
-        window.ipc.postMessage(JSON.stringify(payload));
-    } catch (_) {}
-}
-
-function isSettingsUrl(url) {
-    return typeof url === 'string' && url.startsWith(SETTINGS_URL);
-}
-
-function isHomeUrl(url) {
-    return typeof url === 'string' && (url === HOME_URL || url.startsWith(HOME_URL));
-}
-
-function titleFromUrl(url) {
-    if (isSettingsUrl(url)) return 'Settings';
-    if (isHomeUrl(url)) return 'New Tab';
-    try {
-        const host = new URL(url).hostname;
-        return (host || 'Zenith').replace(/^www\./, '');
-    } catch (_) {
-        return 'Zenith';
-    }
-}
-
-function getSearchEngine() {
-    const value = localStorage.getItem('zenith-search-engine') || 'google';
-    return SEARCH_ENGINES[value] ? value : 'google';
-}
-
-function setSearchEngine(engine) {
-    const normalized = SEARCH_ENGINES[engine] ? engine : 'google';
-    localStorage.setItem('zenith-search-engine', normalized);
-}
-
-function searchUrlFor(query) {
-    return SEARCH_ENGINES[getSearchEngine()](query);
-}
-
-function normalizeInput(raw) {
-    let value = (raw || '').trim();
-    if (!value) return HOME_URL;
-    if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('zenith://')) {
-        return value;
-    }
-    if (value.includes('.') && !value.includes(' ')) {
-        return 'https://' + value;
-    }
-    return searchUrlFor(value);
-}
-
-let currentTheme = localStorage.getItem('zenith-theme') || 'zenith-dark';
-
-function themeName() {
-    return currentTheme;
-}
-
-function applyTheme() {
-    document.documentElement.setAttribute('data-theme', currentTheme);
-    localStorage.setItem('zenith-theme', currentTheme);
-}
-
-function zenithApplySetting(key, value) {
-    if (key === 'theme') {
-        currentTheme = value;
-        applyTheme();
-        return;
-    }
-    if (key === 'searchEngine') {
-        setSearchEngine(value);
-    }
-}
-
-window.zenithApplySetting = zenithApplySetting;
-
-function updateNavButtons() {
-    const enabled = activeId !== null;
-    backBtn.disabled = !enabled;
-    fwdBtn.disabled = !enabled;
-    reloadBtn.disabled = !enabled;
-}
-
-function updateAddressBar() {
-    if (document.activeElement === urlInput) return;
-    const tab = tabs.find(t => t.id === activeId);
-    if (!tab || isHomeUrl(tab.url)) {
-        urlInput.value = '';
-        bookmarkBtn.style.display = 'none';
-    } else {
-        urlInput.value = tab.url || '';
-        bookmarkBtn.style.display = 'flex';
-        if (tab.isBookmarked) {
-            bookmarkBtn.classList.add('active');
-        } else {
-            bookmarkBtn.classList.remove('active');
+        const urlParams = new URLSearchParams(window.location.search);
+        const isPaletteMode = urlParams.get('mode') === 'palette';
+        if (isPaletteMode) {
+            document.body.classList.add('mode-palette');
+            // Nuclear Fix: Physically remove the ui-shell so it cannot render
+            const shell = document.getElementById('ui-shell');
+            if (shell) shell.remove();
         }
 
-        const perms = tab.activePermissions || [];
-        document.getElementById('perm-camera').style.display = perms.some(p => p.includes('camera')) ? 'flex' : 'none';
-        document.getElementById('perm-microphone').style.display = perms.some(p => p.includes('microphone')) ? 'flex' : 'none';
-        document.getElementById('perm-geolocation').style.display = perms.some(p => p.includes('geolocation')) ? 'flex' : 'none';
-        document.getElementById('perm-notifications').style.display = perms.some(p => p.includes('notifications')) ? 'flex' : 'none';
-    }
-}
-
-function renderTabs() {
-    document.querySelectorAll('.tab').forEach(el => el.remove());
-
-    tabs.forEach(tab => {
-        const title = (tab.title || '').trim() || titleFromUrl(tab.url);
-        const pill = document.createElement('div');
-        pill.id = `tab-${tab.id}`;
-        pill.className = 'tab' + (tab.id === activeId ? ' active' : '');
-        pill.innerHTML = `<span class="tab-lbl">${title}</span><button class="tab-x">×</button>`;
-        pill.onclick = (e) => {
-            if (e.target.closest('.tab-x')) {
-                send({ type: 'close_tab', tabId: tab.id });
-            } else {
-                send({ type: 'switch_tab', tabId: tab.id });
-            }
+        const HOME_URL = 'zenith://assets/home';
+        const SETTINGS_URL = 'zenith://assets/settings';
+        const SEARCH_ENGINES = {
+            google: (q) => `https://www.google.com/search?igu=1&q=${encodeURIComponent(q)}`,
+            duckduckgo: (q) => `https://duckduckgo.com/?q=${encodeURIComponent(q)}`,
+            bing: (q) => `https://www.bing.com/search?q=${encodeURIComponent(q)}`
         };
-        tabsBar.insertBefore(pill, newTabBtn);
-    });
-}
 
-function zenithSetState(state) {
-    tabs = Array.isArray(state && state.tabs) ? state.tabs : [];
-    activeId = state && typeof state.activeId === 'number'
-        ? state.activeId
-        : (tabs[0] ? tabs[0].id : null);
-    renderTabs();
-    updateAddressBar();
-    updateNavButtons();
-}
+        let tabs = [];
+        let activeId = null;
+        let currentTheme = localStorage.getItem('zenith-theme') || 'zenith-dark';
 
-window.zenithSetState = zenithSetState;
-
-function createTab(url = HOME_URL) {
-    send({ type: 'new_tab', url });
-}
-
-function navigateActive(rawUrl) {
-    if (activeId === null) return;
-    const url = normalizeInput(rawUrl);
-    send({ type: 'navigate', tabId: activeId, url });
-}
-
-function closeActiveTab() {
-    if (activeId === null) return;
-    send({ type: 'close_tab', tabId: activeId });
-}
-
-function closeMenu() {
-    // Native menu manages its own closing
-}
-
-function showFind() {
-    findBar.classList.remove('hidden');
-    findInput.focus();
-    findInput.select();
-}
-
-function hideFind() {
-    findBar.classList.add('hidden');
-    send({ type: 'find_in_page', query: '', forward: true });
-}
-
-function doFind(forward = true) {
-    const query = findInput.value;
-    if (!query) return;
-    send({ type: 'find_in_page', query, forward });
-}
-
-function openSettingsTab() {
-    send({ type: 'open_settings_tab' });
-}
-
-function openHistoryTab() {
-    send({ type: 'open_history_tab' });
-    closeMenu();
-}
-
-function openDownloadsTab() {
-    send({ type: 'open_downloads_tab' });
-    closeMenu();
-}
-
-function sendAction(action) {
-    if (activeId === null) return;
-    send({ type: 'tab_action', tabId: activeId, action });
-}
-
-function bookmarkActiveTab() {
-    if (activeId === null) return;
-    send({ type: 'bookmark_active_tab', tabId: activeId });
-    closeMenu();
-}
-
-function debounce(func, delay) {
-    return function(...args) {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => func.apply(this, args), delay);
-    };
-}
-
-const SECTION_NAMES = {
-    tab: 'Switch to Tab',
-    bookmark: 'Bookmarks',
-    history: 'History',
-    search: 'Google Suggestions'
-};
-
-function hideSuggestions() {
-    suggestionsDropdown.classList.add('hidden');
-    selectedSuggestionIndex = -1;
-    send({ type: 'suggestions_hidden' });
-}
-
-function renderSuggestions() {
-    if (currentSuggestions.length === 0) {
-        hideSuggestions();
-        return;
-    }
-    
-    send({ type: 'suggestions_shown' });
-    suggestionsDropdown.innerHTML = '';
-    let lastSection = null;
-
-    currentSuggestions.forEach((s, i) => {
-        const type = s.suggestionType || s.type;
-        // Add section header if type changes
-        if (type !== lastSection) {
-            const header = document.createElement('div');
-            header.className = 'sugg-header';
-            header.innerText = SECTION_NAMES[type] || type;
-            suggestionsDropdown.appendChild(header);
-            lastSection = type;
+        function send(payload) {
+            try {
+                window.ipc.postMessage(JSON.stringify(payload));
+            } catch (_) { }
         }
 
-        const item = document.createElement('div');
-        item.className = 'suggestion-item' + (i === selectedSuggestionIndex ? ' selected' : '');
-        
-        // Pick icon
-        let icon = ICONS.shield;
-        if (type === 'history') icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
-        if (type === 'bookmark') icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
-        if (type === 'search') icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
-        if (type === 'tab') icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>';
+        function isSettingsUrl(url) {
+            return typeof url === 'string' && url.startsWith(SETTINGS_URL);
+        }
 
-        item.innerHTML = `
+        function isHomeUrl(url) {
+            return typeof url === 'string' && (url === HOME_URL || url.startsWith(HOME_URL));
+        }
+
+        function titleFromUrl(url) {
+            if (isSettingsUrl(url)) return 'Settings';
+            if (isHomeUrl(url)) return 'New Tab';
+            try {
+                const host = new URL(url).hostname;
+                return (host || 'Zenith').replace(/^www\./, '');
+            } catch (_) {
+                return 'Zenith';
+            }
+        }
+
+        function getSearchEngine() {
+            const value = localStorage.getItem('zenith-search-engine') || 'google';
+            return SEARCH_ENGINES[value] ? value : 'google';
+        }
+
+        function setSearchEngine(engine) {
+            const normalized = SEARCH_ENGINES[engine] ? engine : 'google';
+            localStorage.setItem('zenith-search-engine', normalized);
+        }
+
+        function searchUrlFor(query) {
+            return SEARCH_ENGINES[getSearchEngine()](query);
+        }
+
+        function normalizeInput(raw) {
+            let value = (raw || '').trim();
+            if (!value) return HOME_URL;
+            if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('zenith://')) {
+                return value;
+            }
+            if (value.includes('.') && !value.includes(' ')) {
+                return 'https://' + value;
+            }
+            return searchUrlFor(value);
+        }
+
+        function applyTheme() {
+            if (document.documentElement.getAttribute('data-theme') !== currentTheme) {
+                document.documentElement.setAttribute('data-theme', currentTheme);
+                const isLight = currentTheme.includes('light');
+                document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
+            }
+            if (localStorage.getItem('zenith-theme') !== currentTheme) {
+                localStorage.setItem('zenith-theme', currentTheme);
+            }
+        }
+
+        function zenithApplySetting(key, value) {
+            if (key === 'theme') {
+                currentTheme = value;
+                applyTheme();
+                return;
+            }
+            if (key === 'searchEngine') {
+                setSearchEngine(value);
+            }
+        }
+
+        window.zenithApplySetting = zenithApplySetting;
+
+        function updateNavButtons() {
+            const enabled = activeId !== null;
+            backBtn.disabled = !enabled;
+            fwdBtn.disabled = !enabled;
+            reloadBtn.disabled = !enabled;
+        }
+
+        function updateAddressBar() {
+            if (document.activeElement === urlInput) return;
+            const tab = tabs.find(t => t.id === activeId);
+            if (!tab || isHomeUrl(tab.url)) {
+                urlInput.value = '';
+                bookmarkBtn.style.display = 'none';
+            } else {
+                urlInput.value = tab.url || '';
+                bookmarkBtn.style.display = 'flex';
+                if (tab.isBookmarked) {
+                    bookmarkBtn.classList.add('active');
+                } else {
+                    bookmarkBtn.classList.remove('active');
+                }
+
+                const perms = tab.activePermissions || [];
+                document.getElementById('perm-camera').style.display = perms.some(p => p.includes('camera')) ? 'flex' : 'none';
+                document.getElementById('perm-microphone').style.display = perms.some(p => p.includes('microphone')) ? 'flex' : 'none';
+                document.getElementById('perm-geolocation').style.display = perms.some(p => p.includes('geolocation')) ? 'flex' : 'none';
+                document.getElementById('perm-notifications').style.display = perms.some(p => p.includes('notifications')) ? 'flex' : 'none';
+            }
+        }
+
+        function renderTabs() {
+            document.querySelectorAll('.tab').forEach(el => el.remove());
+
+            tabs.forEach(tab => {
+                const title = (tab.title || '').trim() || titleFromUrl(tab.url);
+                const pill = document.createElement('div');
+                pill.id = `tab-${tab.id}`;
+                pill.className = 'tab' + (tab.id === activeId ? ' active' : '');
+                pill.innerHTML = `<span class="tab-lbl">${title}</span><button class="tab-x">×</button>`;
+                pill.onclick = (e) => {
+                    if (e.target.closest('.tab-x')) {
+                        send({ type: 'close_tab', tabId: tab.id });
+                    } else {
+                        send({ type: 'switch_tab', tabId: tab.id });
+                    }
+                };
+                tabsBar.insertBefore(pill, newTabBtn);
+            });
+        }
+
+        function zenithSetState(state) {
+            tabs = Array.isArray(state && state.tabs) ? state.tabs : [];
+            activeId = state && typeof state.activeId === 'number'
+                ? state.activeId
+                : (tabs[0] ? tabs[0].id : null);
+            renderTabs();
+            updateAddressBar();
+            updateNavButtons();
+        }
+
+        window.zenithSetState = zenithSetState;
+
+        function createTab(url = HOME_URL) {
+            send({ type: 'new_tab', url });
+        }
+
+        function navigateActive(rawUrl) {
+            if (activeId === null) return;
+            const url = normalizeInput(rawUrl);
+            send({ type: 'navigate', tabId: activeId, url });
+        }
+
+        function closeActiveTab() {
+            if (activeId === null) return;
+            send({ type: 'close_tab', tabId: activeId });
+        }
+
+        function closeMenu() {
+            // Native menu manages its own closing
+        }
+
+        function showFind() {
+            findBar.classList.remove('hidden');
+            findInput.focus();
+            findInput.select();
+        }
+
+        function hideFind() {
+            findBar.classList.add('hidden');
+            send({ type: 'find_in_page', query: '', forward: true });
+        }
+
+        function doFind(forward = true) {
+            const query = findInput.value;
+            if (!query) return;
+            send({ type: 'find_in_page', query, forward });
+        }
+
+        function openSettingsTab() {
+            send({ type: 'open_settings_tab' });
+        }
+
+        function openHistoryTab() {
+            send({ type: 'open_history_tab' });
+            closeMenu();
+        }
+
+        function openDownloadsTab() {
+            send({ type: 'open_downloads_tab' });
+            closeMenu();
+        }
+
+        function sendAction(action) {
+            if (activeId === null) return;
+            send({ type: 'tab_action', tabId: activeId, action });
+        }
+
+        function bookmarkActiveTab() {
+            if (activeId === null) return;
+            send({ type: 'bookmark_active_tab', tabId: activeId });
+            closeMenu();
+        }
+
+        function debounce(func, delay) {
+            return function (...args) {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
+        const SECTION_NAMES = {
+            tab: 'Switch to Tab',
+            bookmark: 'Bookmarks',
+            history: 'History'
+        };
+
+        function hideSuggestions() {
+            if (!suggestionsVisible) return;
+            suggestionsDropdown.classList.add('hidden');
+            selectedSuggestionIndex = -1;
+            suggestionsVisible = false;
+            send({ type: 'suggestions_hidden' });
+        }
+
+        function renderSuggestions() {
+            if (currentSuggestions.length === 0) {
+                hideSuggestions();
+                return;
+            }
+
+            if (!suggestionsVisible) {
+                suggestionsVisible = true;
+                send({ type: 'suggestions_shown' });
+            }
+            console.log(`[UI] Rendering ${currentSuggestions.length} items`);
+            suggestionsDropdown.innerHTML = '';
+            let lastSection = null;
+
+            currentSuggestions.forEach((s, i) => {
+                const type = s.suggestionType || s.type;
+                // Add section header if type changes
+                if (type !== lastSection) {
+                    const header = document.createElement('div');
+                    header.className = 'sugg-header';
+                    header.innerText = SECTION_NAMES[type] || type;
+                    suggestionsDropdown.appendChild(header);
+                    lastSection = type;
+                }
+
+                const item = document.createElement('div');
+                item.className = 'suggestion-item' + (i === selectedSuggestionIndex ? ' selected' : '');
+
+                // Pick icon
+                let icon = ICONS.shield;
+                if (type === 'history') icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+                if (type === 'bookmark') icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+
+                if (type === 'tab') icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>';
+
+                item.innerHTML = `
             <div class="sugg-icon">${icon}</div>
             <div class="sugg-content">
                 <span class="sugg-title">${s.title}</span>
@@ -389,259 +459,282 @@ function renderSuggestions() {
                 ${type === 'tab' ? '<span class="sugg-url">Opened Tab</span>' : ''}
             </div>
         `;
-        item.onclick = () => {
-            if (type === 'tab' && s.tabId) {
-                send({ type: 'switch_tab', tabId: s.tabId });
-            } else if (s.url) {
-                navigateActive(s.url);
-            } else {
-                navigateActive(s.title);
-            }
-            hideSuggestions();
-        };
-        suggestionsDropdown.appendChild(item);
-    });
-    suggestionsDropdown.classList.remove('hidden');
-}
-
-window.zenithSetSuggestions = (suggestions) => {
-    currentSuggestions = suggestions || [];
-    selectedSuggestionIndex = -1;
-    renderSuggestions();
-};
-
-urlInput.oninput = debounce(() => {
-    const query = urlInput.value.trim();
-    if (query.length === 0) {
-        hideSuggestions();
-        return;
-    }
-    send({ type: 'get_suggestions', query });
-}, 150);
-
-urlInput.onkeydown = (e) => {
-    if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, currentSuggestions.length - 1);
-        renderSuggestions();
-        return;
-    }
-    if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, -1);
-        renderSuggestions();
-        return;
-    }
-    if (e.key === 'Escape') {
-        hideSuggestions();
-        return;
-    }
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') {
-        e.preventDefault();
-        urlInput.select();
-        return;
-    }
-    if (e.key === 'Enter') {
-        if (selectedSuggestionIndex >= 0) {
-            e.preventDefault();
-            const s = currentSuggestions[selectedSuggestionIndex];
-            if (s.url) navigateActive(s.url);
-            else navigateActive(s.title);
-        } else {
-            navigateActive(urlInput.value);
+                item.onclick = () => {
+                    if (type === 'tab' && s.tabId) {
+                        send({ type: 'switch_tab', tabId: s.tabId });
+                    } else if (s.url) {
+                        navigateActive(s.url);
+                    } else {
+                        navigateActive(s.title);
+                    }
+                    hideSuggestions();
+                };
+                suggestionsDropdown.appendChild(item);
+            });
+            suggestionsDropdown.classList.remove('hidden');
         }
-        urlInput.blur();
-        hideSuggestions();
-    }
-};
 
-let pendingPermTabId = null;
-let pendingPermType = null;
-let pendingPermRequestId = null;
+        window.zenithSetSuggestions = (suggestions) => {
+            console.log(`[UI] Received ${suggestions?.length || 0} suggestions`);
+            currentSuggestions = suggestions || [];
+            selectedSuggestionIndex = -1;
+            renderSuggestions();
+        };
 
-const ICONS = {
-    camera: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
-    microphone: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>`,
-    geolocation: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
-    notifications: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`,
-    shield: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`
-};
+        urlInput.oninput = (e) => {
+            const rawValue = urlInput.value;
+            // Immediate Sanity Filter (no debounce for cleaning)
+            const sanitized = rawValue.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
+            
+            if (rawValue !== sanitized) {
+                const start = urlInput.selectionStart;
+                const end = urlInput.selectionEnd;
+                urlInput.value = sanitized;
+                urlInput.setSelectionRange(start, end);
+            }
 
-function decidePermission(decision) {
-    const bar = document.getElementById('permission-bar');
-    bar.classList.add('hidden');
-    if (pendingPermTabId !== null) {
-        send({ 
-            type: 'permission_decision', 
-            decision, 
-            tabId: pendingPermTabId, 
-            permission: pendingPermType,
-            requestId: pendingPermRequestId 
+            const query = urlInput.value.trim();
+            if (query.length === 0) {
+                hideSuggestions();
+                return;
+            }
+            
+            // Debounce only the IPC fetch, not the cleanup
+            debouncedFetch(query);
+        };
+
+        const debouncedFetch = debounce((query) => {
+            send({ type: 'get_suggestions', query });
+        }, 150);
+
+        urlInput.onkeydown = (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                e.stopPropagation(); // Prevent system-level event bubbling that causes glitches
+            }
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, currentSuggestions.length - 1);
+                renderSuggestions();
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, -1);
+                renderSuggestions();
+                return;
+            }
+            if (e.key === 'Escape') {
+                hideSuggestions();
+                return;
+            }
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') {
+                e.preventDefault();
+                urlInput.select();
+                return;
+            }
+            if (e.key === 'Enter') {
+                if (selectedSuggestionIndex >= 0) {
+                    e.preventDefault();
+                    const s = currentSuggestions[selectedSuggestionIndex];
+                    if (s.url) navigateActive(s.url);
+                    else navigateActive(s.title);
+                } else {
+                    navigateActive(urlInput.value);
+                }
+                urlInput.blur();
+                hideSuggestions();
+            }
+        };
+
+        let pendingPermTabId = null;
+        let pendingPermType = null;
+        let pendingPermRequestId = null;
+
+        const ICONS = {
+            camera: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
+            microphone: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>`,
+            geolocation: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+            notifications: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`,
+            shield: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`
+        };
+
+        function decidePermission(decision) {
+            const bar = document.getElementById('permission-bar');
+            bar.classList.add('hidden');
+            if (pendingPermTabId !== null) {
+                send({
+                    type: 'permission_decision',
+                    decision,
+                    tabId: pendingPermTabId,
+                    permission: pendingPermType,
+                    requestId: pendingPermRequestId
+                });
+
+                // Optimistically update icons in the UI
+                if (decision === 'granted') {
+                    const tab = tabs.find(t => t.id === pendingPermTabId);
+                    if (tab) {
+                        tab.activePermissions = tab.activePermissions || [];
+                        if (!tab.activePermissions.includes(pendingPermType)) {
+                            tab.activePermissions.push(pendingPermType);
+                        }
+                        updateAddressBar();
+                    }
+                }
+            }
+            pendingPermTabId = null;
+            pendingPermType = null;
+            pendingPermRequestId = null;
+        }
+
+        function showPermissionPrompt(tabId, url, type, requestId) {
+            pendingPermTabId = tabId;
+            pendingPermType = type;
+            pendingPermRequestId = requestId;
+            const bar = document.getElementById('permission-bar');
+            const text = document.getElementById('perm-text');
+            const iconEl = document.getElementById('perm-type-icon');
+
+            iconEl.innerHTML = ICONS[type] || ICONS.shield;
+
+            let label = 'access';
+            if (type === 'camera') label = 'access your camera';
+            if (type === 'microphone') label = 'access your microphone';
+            if (type === 'geolocation') label = 'access your location';
+            if (type === 'notifications') label = 'send you notifications';
+
+            try {
+                const host = new URL(url).hostname || url;
+                text.innerText = `Allow "${host}" to ${label}?`;
+            } catch (e) {
+                text.innerText = `Allow "${url}" to ${label}?`;
+            }
+
+            bar.classList.remove('hidden');
+        }
+
+        window.showPermissionPrompt = showPermissionPrompt;
+        window.decidePermission = decidePermission;
+
+
+
+        newTabBtn.onclick = () => createTab();
+        bookmarkBtn.onclick = (e) => {
+            e.stopPropagation();
+            bookmarkActiveTab();
+        };
+        settBtn.onclick = (e) => {
+            e.stopPropagation();
+            const rect = settBtn.getBoundingClientRect();
+            send({ type: 'show_context_menu', x: rect.left, y: rect.bottom });
+        };
+        document.onclick = () => closeMenu();
+
+        function openThemeMenu() {
+            currentTheme = currentTheme.includes('dark') ? 'zenith-light' : 'zenith-dark';
+            applyTheme();
+            send({ type: 'settings-change', key: 'theme', value: currentTheme });
+        }
+
+        findInput.oninput = () => doFind(true);
+        findInput.onkeydown = (e) => {
+            if (e.key === 'Enter') doFind(!e.shiftKey);
+            if (e.key === 'Escape') hideFind();
+        };
+        findNextBtn.onclick = () => doFind(true);
+        findPrevBtn.onclick = () => doFind(false);
+        findCloseBtn.onclick = () => hideFind();
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+
+            let icon = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+            if (type === 'success') icon = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+            if (type === 'error') icon = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+
+            toast.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-msg">${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('toast-out');
+                setTimeout(() => toast.remove(), 400);
+            }, 4500);
+        }
+
+        window.showToast = showToast;
+        window.zenithOpenFind = showFind;
+
+        backBtn.onclick = () => sendAction('back');
+        fwdBtn.onclick = () => sendAction('forward');
+        reloadBtn.onclick = () => sendAction('reload');
+
+        document.addEventListener('keydown', (e) => {
+            const isPrimary = e.metaKey || e.ctrlKey;
+            if (!isPrimary) return;
+
+            const key = e.key.toLowerCase();
+            if (key === 't') {
+                e.preventDefault();
+                createTab();
+            }
+            if (key === 'w') {
+                e.preventDefault();
+                closeActiveTab();
+            }
+            if (key === 'r') {
+                e.preventDefault();
+                sendAction('reload');
+            }
+            if (key === 'd') {
+                e.preventDefault();
+                bookmarkActiveTab();
+            }
+            if (key === 'y') {
+                e.preventDefault();
+                openHistoryTab();
+            }
+            if (key === 'j') {
+                e.preventDefault();
+                openDownloadsTab();
+            }
+            if (key === 'f') {
+                e.preventDefault();
+                showFind();
+            }
+            if (key === 'g') {
+                e.preventDefault();
+                doFind(!e.shiftKey);
+            }
+            if (key === 'l') {
+                e.preventDefault();
+                urlInput.focus();
+                urlInput.select();
+            }
+            if (e.key === ',') {
+                e.preventDefault();
+                openSettingsTab();
+            }
         });
 
-        // Optimistically update icons in the UI
-        if (decision === 'granted') {
-            const tab = tabs.find(t => t.id === pendingPermTabId);
-            if (tab) {
-                tab.activePermissions = tab.activePermissions || [];
-                if (!tab.activePermissions.includes(pendingPermType)) {
-                    tab.activePermissions.push(pendingPermType);
-                }
-                updateAddressBar();
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'zenith-theme' && e.newValue && e.newValue !== currentTheme) {
+                currentTheme = e.newValue;
+                applyTheme();
+                return;
             }
-        }
-    }
-    pendingPermTabId = null;
-    pendingPermType = null;
-    pendingPermRequestId = null;
-}
+            if (e.key === 'zenith-search-engine') {
+                setSearchEngine(e.newValue || 'google');
+            }
+        });
 
-function showPermissionPrompt(tabId, url, type, requestId) {
-    pendingPermTabId = tabId;
-    pendingPermType = type;
-    pendingPermRequestId = requestId;
-    const bar = document.getElementById('permission-bar');
-    const text = document.getElementById('perm-text');
-    const iconEl = document.getElementById('perm-type-icon');
-
-    iconEl.innerHTML = ICONS[type] || ICONS.shield;
-    
-    let label = 'access';
-    if (type === 'camera') label = 'access your camera';
-    if (type === 'microphone') label = 'access your microphone';
-    if (type === 'geolocation') label = 'access your location';
-    if (type === 'notifications') label = 'send you notifications';
-
-    try {
-        const host = new URL(url).hostname || url;
-        text.innerText = `Allow "${host}" to ${label}?`;
-    } catch(e) {
-        text.innerText = `Allow "${url}" to ${label}?`;
-    }
-    
-    bar.classList.remove('hidden');
-}
-
-window.showPermissionPrompt = showPermissionPrompt;
-window.decidePermission = decidePermission;
-
-urlInput.onfocus = () => setTimeout(() => urlInput.select(), 10);
-
-newTabBtn.onclick = () => createTab();
-bookmarkBtn.onclick = (e) => {
-    e.stopPropagation();
-    bookmarkActiveTab();
-};
-settBtn.onclick = (e) => { 
-    e.stopPropagation(); 
-    const rect = settBtn.getBoundingClientRect();
-    send({ type: 'show_context_menu', x: rect.left, y: rect.bottom });
-};
-document.onclick = () => closeMenu();
-
-function openThemeMenu() {
-    darkMode = !darkMode;
-    applyTheme();
-    send({ type: 'settings-change', key: 'theme', value: themeName() });
-}
-
-findInput.oninput = () => doFind(true);
-findInput.onkeydown = (e) => {
-    if (e.key === 'Enter') doFind(!e.shiftKey);
-    if (e.key === 'Escape') hideFind();
-};
-findNextBtn.onclick = () => doFind(true);
-findPrevBtn.onclick = () => doFind(false);
-findCloseBtn.onclick = () => hideFind();
-
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    
-    let icon = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
-    if (type === 'success') icon = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
-    if (type === 'error') icon = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
-
-    toast.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-msg">${message}</span>`;
-    container.appendChild(toast);
-
-    setTimeout(() => {
-        toast.classList.add('toast-out');
-        setTimeout(() => toast.remove(), 400);
-    }, 4500);
-}
-
-window.showToast = showToast;
-window.zenithOpenFind = showFind;
-
-backBtn.onclick = () => sendAction('back');
-fwdBtn.onclick = () => sendAction('forward');
-reloadBtn.onclick = () => sendAction('reload');
-
-document.addEventListener('keydown', (e) => {
-    const isPrimary = e.metaKey || e.ctrlKey;
-    if (!isPrimary) return;
-
-    const key = e.key.toLowerCase();
-    if (key === 't') {
-        e.preventDefault();
-        createTab();
-    }
-    if (key === 'w') {
-        e.preventDefault();
-        closeActiveTab();
-    }
-    if (key === 'r') {
-        e.preventDefault();
-        sendAction('reload');
-    }
-    if (key === 'd') {
-        e.preventDefault();
-        bookmarkActiveTab();
-    }
-    if (key === 'y') {
-        e.preventDefault();
-        openHistoryTab();
-    }
-    if (key === 'j') {
-        e.preventDefault();
-        openDownloadsTab();
-    }
-    if (key === 'f') {
-        e.preventDefault();
-        showFind();
-    }
-    if (key === 'g') {
-        e.preventDefault();
-        doFind(!e.shiftKey);
-    }
-    if (key === 'l') {
-        e.preventDefault();
-        urlInput.focus();
-        urlInput.select();
-    }
-    if (e.key === ',') {
-        e.preventDefault();
-        openSettingsTab();
-    }
-});
-
-window.addEventListener('storage', (e) => {
-    if (e.key === 'zenith-theme') {
-        darkMode = (e.newValue || 'dark') !== 'light';
         applyTheme();
-        return;
-    }
-    if (e.key === 'zenith-search-engine') {
-        setSearchEngine(e.newValue || 'google');
-    }
-});
-
-applyTheme();
-updateNavButtons();
-send({ type: 'settings-change', key: 'theme', value: themeName() });
-send({ type: 'chrome_ready' });
-</script>
+        updateNavButtons();
+        send({ type: 'settings-change', key: 'theme', value: currentTheme });
+        send({ type: 'chrome_ready' });
+    </script>
 </body>
+
 </html>

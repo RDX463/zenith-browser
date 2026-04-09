@@ -7,8 +7,7 @@ use wry::{WebView, WebViewBuilder, WebContext, Rect, dpi::{LogicalPosition, Logi
 use crate::ipc::{UserEvent, BrowserAction, Suggestion, ChromeState, ChromeTabState};
 use crate::config::{RecentSite, BookmarkSite, DownloadEntry, load_recent_sites, load_bookmarks, load_downloads, save_bookmarks, toggle_bookmark};
 use crate::tab::{BrowserTab, build_browser_tab};
-use crate::utils::{is_assets_url, fallback_title_for_url, normalize_user_input_url, should_warmup_youtube_account_sync, HOME_URL, HISTORY_URL, DOWNLOADS_URL, NON_ALPHANUMERIC};
-use percent_encoding::utf8_percent_encode;
+use crate::utils::{is_assets_url, fallback_title_for_url, normalize_user_input_url, should_warmup_youtube_account_sync, HOME_URL, HISTORY_URL, DOWNLOADS_URL};
 use crate::ui_handler::handle_zenith_request;
 use crate::menu::AppMenu;
 
@@ -26,7 +25,6 @@ pub struct BrowserApp {
     pub active_tab_id: Option<u32>,
     pub next_tab_id: u32,
     pub chrome_webview: WebView,
-    pub palette_webview: WebView,
     pub chrome_ready: bool,
     pub current_theme: String,
     pub auth_windows: Vec<AuthWindow>,
@@ -70,33 +68,16 @@ impl BrowserApp {
         let chrome_proxy = proxy.clone();
         let chrome_protocol_html = final_ui_html.clone();
         let chrome_webview = WebViewBuilder::new_with_web_context(&mut web_context)
+            .with_transparent(true)
+            .with_background_color((0, 0, 0, 0)) // Glass background
+            .with_devtools(true)
             .with_bounds(Self::chrome_bounds(&window))
             .with_url("zenith://assets/ui")
-            .with_devtools(true)
-            .with_navigation_handler(|url| is_assets_url(&url))
             .with_custom_protocol("zenith".into(), move |_id, request| {
                 handle_zenith_request(chrome_protocol_html.as_str(), request)
             })
             .with_ipc_handler(move |request| {
                 crate::ipc::dispatch_ipc_message(request.body(), &chrome_proxy, None);
-            })
-            .build_as_child(&window)
-            .unwrap();
-
-        let palette_proxy = proxy.clone();
-        let palette_protocol_html = final_ui_html.clone();
-        let palette_webview = WebViewBuilder::new_with_web_context(&mut web_context)
-            .with_transparent(true)
-            .with_background_color((28, 29, 34, 0))
-            .with_visible(false)
-            .with_devtools(true)
-            .with_bounds(Self::palette_bounds(&window))
-            .with_url("zenith://assets/ui?mode=palette")
-            .with_custom_protocol("zenith".into(), move |_id, request| {
-                handle_zenith_request(palette_protocol_html.as_str(), request)
-            })
-            .with_ipc_handler(move |request| {
-                crate::ipc::dispatch_ipc_message(request.body(), &palette_proxy, None);
             })
             .build_as_child(&window)
             .unwrap();
@@ -108,7 +89,6 @@ impl BrowserApp {
             active_tab_id: None,
             next_tab_id: 1,
             chrome_webview,
-            palette_webview,
             chrome_ready: false,
             current_theme,
             auth_windows: Vec::new(),
@@ -130,21 +110,12 @@ impl BrowserApp {
         let size = window.inner_size().to_logical::<u32>(window.scale_factor());
         Rect {
             position: LogicalPosition::new(0, 0).into(),
-            size: WryLogicalSize::new(size.width.max(1), CHROME_HEIGHT).into(),
+            size: WryLogicalSize::new(size.width.max(1), 600).into(),
         }
     }
 
-    pub fn palette_bounds(window: &Window) -> Rect {
-        let size = window.inner_size().to_logical::<f64>(window.scale_factor());
-        let width = 640.0;
-        let height = 500.0;
-        let x = (size.width - width) / 2.0;
-        let y = 96.0;
-        Rect {
-            position: LogicalPosition::new(x.max(0.0) as i32, y as i32).into(),
-            size: WryLogicalSize::new(width as u32, height as u32).into(),
-        }
-    }
+
+
 
     pub fn content_bounds(window: &Window) -> Rect {
         let size = window.inner_size().to_logical::<u32>(window.scale_factor());
@@ -158,7 +129,6 @@ impl BrowserApp {
 
     pub fn update_bounds(&self) {
         let _ = self.chrome_webview.set_bounds(Self::chrome_bounds(&self.window));
-        let _ = self.palette_webview.set_bounds(Self::palette_bounds(&self.window));
         let bounds = Self::content_bounds(&self.window);
         for tab in &self.tabs {
             let _ = tab.webview.set_bounds(bounds);
@@ -189,12 +159,7 @@ impl BrowserApp {
             self.next_tab_id += 1;
             self.apply_tab_visibility();
             
-            // Force the UI layer back to the top of the stack (macOS specific layering)
-            #[cfg(target_os = "macos")]
-            {
-                let _ = self.chrome_webview.set_visible(false);
-                let _ = self.chrome_webview.set_visible(true);
-            }
+
             
             if self.chrome_ready {
                 self.sync_chrome_state();
@@ -206,11 +171,7 @@ impl BrowserApp {
         if self.tabs.iter().any(|t| t.id == tab_id) {
             self.active_tab_id = Some(tab_id);
             self.apply_tab_visibility();
-            #[cfg(target_os = "macos")]
-            {
-                let _ = self.chrome_webview.set_visible(false);
-                let _ = self.chrome_webview.set_visible(true);
-            }
+
             if self.chrome_ready {
                 self.sync_chrome_state();
             }
@@ -299,7 +260,13 @@ impl BrowserApp {
         if let Ok(json) = serde_json::to_string(&state) {
             let js = format!("if(window.zenithSetState) window.zenithSetState({json});");
             let _ = self.chrome_webview.evaluate_script(&js);
-            let _ = self.palette_webview.evaluate_script(&js);
+        }
+    }
+
+    pub fn elevate_ui_layers(&self) {
+        #[cfg(target_os = "macos")]
+        {
+            // Removed disruptive focus() call
         }
     }
 
@@ -307,6 +274,7 @@ impl BrowserApp {
         for tab in &self.tabs {
             let _ = tab.webview.set_visible(Some(tab.id) == self.active_tab_id);
         }
+        self.elevate_ui_layers();
     }
 
     pub fn apply_theme_to_webview(webview: &WebView, theme: &str) {
@@ -370,6 +338,7 @@ impl BrowserApp {
         let _ = self.chrome_webview.evaluate_script(&js);
     }
 
+
     pub fn fetch_suggestions(&self, query: String, proxy: EventLoopProxy<UserEvent>) {
         let recent_sites = self.recent_sites.clone();
         let bookmarks = self.bookmarks.clone();
@@ -385,19 +354,30 @@ impl BrowserApp {
         }
 
         std::thread::spawn(move || {
-            let query_lc = query.to_lowercase();
-            let mut results = Vec::new();
-
-            // 0. Tabs
-            for t in tabs_snapshot {
-                if t.title.to_lowercase().contains(&query_lc) || t.url.as_ref().map(|u| u.to_lowercase()).unwrap_or_default().contains(&query_lc) {
-                    results.push(t);
-                }
-                if results.len() >= 3 { break; }
+            let query = query.trim().to_string();
+            if query.is_empty() {
+                let _ = proxy.send_event(UserEvent::SuggestionResults(Vec::new()));
+                return;
             }
 
-            // 1. Bookmarks
+            let query_lc = query.to_lowercase();
+            let mut results: Vec<Suggestion> = Vec::new();
+
+
+
+            // 2. Tabs
+            for t in tabs_snapshot {
+                if results.len() >= 8 { break; }
+                if t.title.to_lowercase().contains(&query_lc) || t.url.as_ref().map(|u| u.to_lowercase()).unwrap_or_default().contains(&query_lc) {
+                    if !results.iter().any(|r| r.title == t.title) {
+                        results.push(t);
+                    }
+                }
+            }
+
+            // 3. Bookmarks
             for b in &bookmarks {
+                if results.len() >= 12 { break; }
                 if b.url.to_lowercase().contains(&query_lc) || b.title.to_lowercase().contains(&query_lc) {
                     if !results.iter().any(|r| r.url.as_ref() == Some(&b.url)) {
                         results.push(Suggestion {
@@ -408,12 +388,11 @@ impl BrowserApp {
                         });
                     }
                 }
-                if results.len() >= 5 { break; }
             }
 
-            // 2. History
+            // 4. History
             for s in &recent_sites {
-                if results.len() >= 7 { break; }
+                if results.len() >= 15 { break; }
                 if s.url.to_lowercase().contains(&query_lc) || s.title.to_lowercase().contains(&query_lc) {
                     if !results.iter().any(|r| r.url.as_ref() == Some(&s.url)) {
                         results.push(Suggestion {
@@ -426,32 +405,9 @@ impl BrowserApp {
                 }
             }
 
-            // 3. Search suggestions
-            let client = reqwest::blocking::Client::new();
-            let api_url = format!("https://suggestqueries.google.com/complete/search?client=chrome&q={}", utf8_percent_encode(&query, NON_ALPHANUMERIC));
-            
-            if let Ok(resp) = client.get(api_url).send() {
-                if let Ok(json_val) = resp.json::<serde_json::Value>() {
-                    if let serde_json::Value::Array(root) = &json_val {
-                        if let Some(suggestions_val) = root.get(1) {
-                            if let serde_json::Value::Array(suggestions) = suggestions_val {
-                                for s in suggestions {
-                                    if results.len() >= 10 { break; }
-                                    if let serde_json::Value::String(s_str) = s {
-                                        results.push(Suggestion {
-                                            title: s_str.clone(),
-                                            url: None,
-                                            suggestion_type: "search".to_string(),
-                                            tab_id: None,
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
             let _ = proxy.send_event(UserEvent::SuggestionResults(results));
         });
     }
 }
+
+

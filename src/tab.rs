@@ -179,7 +179,9 @@ pub fn tab_initialization_script(tab_id: u32) -> String {
 
             window.__zenithApplyBrowserTheme = function(theme) {{
                 try {{
-                    window.__ZENITH_THEME = theme === 'light' ? 'light' : 'dark';
+                    const mode = theme.includes('light') ? 'light' : 'dark';
+                    window.__ZENITH_THEME = mode;
+                    document.documentElement.style.colorScheme = mode;
                 }} catch (_) {{}}
             }};
 

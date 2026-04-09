@@ -26,6 +26,10 @@ fn main() {
     event_loop.run(move |event, event_loop_target, control_flow| {
         *control_flow = ControlFlow::Wait;
 
+        if let Ok(m_event) = muda::MenuEvent::receiver().try_recv() {
+            let _ = proxy.send_event(UserEvent::MenuAction(m_event.id().clone()));
+        }
+
         if let Event::UserEvent(UserEvent::MenuAction(ref menu_id)) = event {
             if *menu_id == app.menu.m_new_tab.id() {
                 app.new_tab(None, true, &proxy);
@@ -63,6 +67,12 @@ fn main() {
                     }
                 }
             }
+        }
+
+        match &event {
+            Event::UserEvent(UserEvent::SuggestionsShown) | Event::UserEvent(UserEvent::SuggestionsHidden) | Event::UserEvent(UserEvent::SuggestionResults(_)) | Event::UserEvent(UserEvent::GetSuggestions(_)) => {}
+            Event::UserEvent(ue) => println!("[IPC] Incoming - {:?}", ue),
+            _ => {}
         }
 
         match event {
@@ -312,11 +322,11 @@ fn main() {
             Event::UserEvent(UserEvent::GetSuggestions(query)) => {
                 app.fetch_suggestions(query, proxy.clone());
             }
-            Event::UserEvent(UserEvent::SuggestionsShown) => { let _ = app.palette_webview.set_visible(true); }
-            Event::UserEvent(UserEvent::SuggestionsHidden) => { let _ = app.palette_webview.set_visible(false); }
+            Event::UserEvent(UserEvent::SuggestionsShown) | Event::UserEvent(UserEvent::SuggestionsHidden) => {}
+
             Event::UserEvent(UserEvent::SuggestionResults(results)) => {
                 let js = format!("if (window.zenithSetSuggestions) window.zenithSetSuggestions({});", serde_json::to_string(&results).unwrap());
-                let _ = app.palette_webview.evaluate_script(&js);
+                let _ = app.chrome_webview.evaluate_script(&js);
             }
             _ => {}
         }
