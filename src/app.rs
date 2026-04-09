@@ -285,6 +285,11 @@ impl BrowserApp {
 
     pub fn sync_tab_data(&self, index: usize) {
         if let Some(tab) = self.tabs.get(index) {
+            // Always sync theme to every tab
+            if let Ok(theme_json) = serde_json::to_string(&self.current_theme) {
+                let _ = tab.webview.evaluate_script(&format!("window.postMessage({{ type: 'theme', theme: {theme_json} }}, '*');"));
+            }
+
             if tab.url.starts_with(HOME_URL) {
                 if let Ok(sites_json) = serde_json::to_string(&self.recent_sites) {
                     let _ = tab.webview.evaluate_script(&format!("window.postMessage({{ type: 'recent-sites', sites: {sites_json} }}, '*');"));

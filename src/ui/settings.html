@@ -529,6 +529,14 @@ document.getElementById('docs-btn').addEventListener('click', () => {
     send({ type: 'navigate', url: 'https://github.com/RDX463/zenith-browser' });
 });
 
+window.zenithApplySetting = (key, value) => {
+    if (key === 'theme') {
+        applyTheme(value);
+    } else if (key === 'searchEngine') {
+        applySearchEngine(value);
+    }
+};
+
 window.addEventListener('message', (e) => {
     if (!e.data || typeof e.data !== 'object') return;
 

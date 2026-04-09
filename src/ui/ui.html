@@ -717,6 +717,23 @@
             }
         });
 
+        window.zenithApplySetting = (key, value) => {
+            console.log(`[UI] Setting update: ${key}=${value}`);
+            if (key === 'theme') {
+                currentTheme = value;
+                localStorage.setItem('zenith-theme', value);
+                applyTheme();
+                // Broadcast to all tabs
+                document.querySelectorAll('iframe').forEach(f => {
+                    f.contentWindow.postMessage({ type: 'theme', theme: value }, '*');
+                });
+            }
+            if (key === 'searchEngine') {
+                setSearchEngine(value);
+                localStorage.setItem('zenith-search-engine', value);
+            }
+        };
+
         window.addEventListener('storage', (e) => {
             if (e.key === 'zenith-theme' && e.newValue && e.newValue !== currentTheme) {
                 currentTheme = e.newValue;

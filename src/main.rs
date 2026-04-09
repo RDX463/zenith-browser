@@ -70,7 +70,7 @@ fn main() {
         }
 
         match &event {
-            Event::UserEvent(UserEvent::SuggestionsShown) | Event::UserEvent(UserEvent::SuggestionsHidden) | Event::UserEvent(UserEvent::SuggestionResults(_)) | Event::UserEvent(UserEvent::GetSuggestions(_)) => {}
+            Event::UserEvent(UserEvent::GetSuggestions(_)) | Event::UserEvent(UserEvent::SuggestionResults(_)) => {}
             Event::UserEvent(ue) => println!("[IPC] Incoming - {:?}", ue),
             _ => {}
         }

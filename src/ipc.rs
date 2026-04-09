@@ -20,7 +20,7 @@ pub struct Suggestion {
     pub tab_id: Option<u32>,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Debug, serde::Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ChromeTabState {
     pub id: u32,
@@ -30,7 +30,7 @@ pub struct ChromeTabState {
     pub active_permissions: Vec<String>,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Debug, serde::Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ChromeState {
     pub tabs: Vec<ChromeTabState>,
@@ -118,7 +118,6 @@ pub enum UserEvent {
     },
     GetSuggestions(String),
     SuggestionResults(Vec<Suggestion>),
-    ChromeState(ChromeState),
 }
 
 #[derive(Debug, Deserialize)]
