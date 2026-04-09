@@ -266,7 +266,7 @@ pub fn build_browser_tab(
             if next.starts_with("zenith://") {
                 return is_assets_url(&next);
             }
-            is_http_like_url(&next)
+            is_http_like_url(&next) || next.starts_with("file://") || next.starts_with("about:") || next.starts_with("data:")
         })
         .with_new_window_req_handler(move |next: String, _features: wry::NewWindowFeatures| {
             let next_url = next.clone();
@@ -276,7 +276,7 @@ pub fn build_browser_tab(
             } else if should_open_auth_window(&next_url) {
                 let _ = popup_proxy.send_event(UserEvent::OpenAuthWindow(next_url));
                 wry::NewWindowResponse::Deny
-            } else if is_http_like_url(&next_url) {
+            } else if is_http_like_url(&next_url) || next_url.starts_with("file://") || next_url.starts_with("about:") || next_url.starts_with("data:") {
                 let _ = popup_proxy.send_event(UserEvent::NewTab {
                     url: Some(next_url),
                     activate: true,
