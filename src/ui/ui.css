@@ -4,8 +4,8 @@
 
 /* ── Design tokens ───────────────────────────────────────────────────────── */
 :root, [data-theme="dark"], [data-theme="zenith-dark"] {
-    --chrome:        rgba(28, 29, 34, 0.75);
-    --chrome-border: rgba(255,255,255,0.12);
+    --chrome:        rgba(28, 29, 34, 0.85);
+    --chrome-border: rgba(255,255,255,0.15);
     --tab-bg:        rgba(255,255,255,0.04);
     --tab-active-bg: #2a2c33;
     --input-bg:      #23252c;
