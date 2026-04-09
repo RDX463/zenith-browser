@@ -110,8 +110,10 @@
             </svg>
             <input type="text" id="palette-input" placeholder="Search, type URL, or command..." spellcheck="false" autocomplete="off" autofocus>
         </div>
-        <div id="suggestions-dropdown" class="suggestions-dropdown"></div>
+        <div id="palette-suggestions" class="suggestions-dropdown"></div>
     </div>
+
+    <div id="shell-suggestions" class="suggestions-dropdown hidden"></div>
 
     <div id="permission-bar" class="permission-bar hidden">
         <div class="perm-bar-content">
@@ -177,12 +179,17 @@
         const reloadBtn = document.getElementById('reload-btn');
         const bookmarkBtn = document.getElementById('bookmark-btn');
         const bookmarkIcon = document.getElementById('bookmark-icon');
-        const suggestionsDropdown = document.getElementById('suggestions-dropdown');
+        const shellSuggestions = document.getElementById('shell-suggestions');
+        const paletteSuggestions = document.getElementById('palette-suggestions');
 
         let currentSuggestions = [];
         let selectedSuggestionIndex = -1;
         let debounceTimer = null;
         let suggestionsVisible = false;
+
+        function getSuggestionsContainer() {
+            return isPaletteMode ? paletteSuggestions : shellSuggestions;
+        }
 
         const urlParams = new URLSearchParams(window.location.search);
         const isPaletteMode = urlParams.get('mode') === 'palette';
@@ -420,9 +427,8 @@
         };
 
         function hideSuggestions() {
-            if (!suggestionsVisible) return;
-            suggestionsDropdown.classList.add('hidden');
-            selectedSuggestionIndex = -1;
+            shellSuggestions.classList.add('hidden');
+            paletteSuggestions.classList.remove('visible'); // Palette uses 'visible' class for animation
             suggestionsVisible = false;
         }
 
@@ -435,8 +441,9 @@
             if (!suggestionsVisible) {
                 suggestionsVisible = true;
             }
-            console.log(`[UI] Rendering ${currentSuggestions.length} items`);
-            suggestionsDropdown.innerHTML = '';
+            const container = getSuggestionsContainer();
+            console.log(`[UI] Rendering ${currentSuggestions.length} items to ${isPaletteMode ? 'palette' : 'shell'}`);
+            container.innerHTML = '';
             let lastSection = null;
 
             currentSuggestions.forEach((s, i) => {
@@ -478,9 +485,10 @@
                     }
                     hideSuggestions();
                 };
-                suggestionsDropdown.appendChild(item);
+                container.appendChild(item);
             });
-            suggestionsDropdown.classList.remove('hidden');
+            container.classList.remove('hidden');
+            if (isPaletteMode) container.classList.add('visible');
         }
 
         const paletteInput = document.getElementById('palette-input');

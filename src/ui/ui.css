@@ -142,12 +142,13 @@ html, body {
     will-change: backdrop-filter;
 }
 
-#ui-shell .suggestions-dropdown {
-    position: absolute;
-    top: 81px;
+#shell-suggestions {
+    position: fixed;
+    top: 82px;
     left: 50%;
     transform: translateX(-50%);
     width: 640px;
+    z-index: 10000;
 }
 
 /* ── Tab bar ─────────────────────────────────────────────────────────────── */
@@ -492,10 +493,11 @@ html, body {
     will-change: backdrop-filter;
 }
 
-.palette-wrap .suggestions-dropdown {
+.palette-wrap #palette-suggestions {
     margin-top: 4px;
     border: 1.5px solid var(--accent);
     border-radius: 16px;
+    width: 100%;
 }
 
 .palette-icon { width: 22px; height: 22px; color: var(--accent); flex-shrink: 0; }
