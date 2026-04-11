@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use tao::window::Window;
 use tao::event_loop::EventLoopProxy;
 use wry::{WebView, WebViewBuilder, WebContext, PageLoadEvent, Rect, http::Request};
@@ -247,7 +246,6 @@ pub fn build_browser_tab(
     url: &str,
     bounds: Rect,
     proxy: &EventLoopProxy<UserEvent>,
-    ui_html: Arc<String>,
 ) -> Option<BrowserTab> {
     let popup_proxy = proxy.clone();
     let title_proxy = proxy.clone();
@@ -255,7 +253,6 @@ pub fn build_browser_tab(
     let ipc_proxy = proxy.clone();
     let download_start_proxy = proxy.clone();
     let download_complete_proxy = proxy.clone();
-    let protocol_html = ui_html;
     let init_script = tab_initialization_script(tab_id);
 
     let webview_builder = WebViewBuilder::new_with_web_context(web_context)
@@ -323,7 +320,7 @@ pub fn build_browser_tab(
             dispatch_ipc_message(request.body(), &ipc_proxy, Some(tab_id));
         })
         .with_custom_protocol("zenith".into(), move |_id, request: Request<Vec<u8>>| {
-            handle_zenith_request(protocol_html.as_str(), request)
+            handle_zenith_request("", request)
         });
 
     let webview = webview_builder

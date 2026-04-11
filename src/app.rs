@@ -5,11 +5,11 @@ use tao::dpi::LogicalSize;
 use wry::{WebView, WebViewBuilder, WebContext, Rect, dpi::{LogicalPosition, LogicalSize as WryLogicalSize}};
 
 use crate::ipc::{UserEvent, BrowserAction, Suggestion, ChromeState, ChromeTabState};
-use crate::config::{RecentSite, BookmarkSite, DownloadEntry, load_recent_sites, load_bookmarks, load_downloads, save_bookmarks, toggle_bookmark};
 use crate::tab::{BrowserTab, build_browser_tab};
 use crate::utils::{is_assets_url, fallback_title_for_url, normalize_user_input_url, should_warmup_youtube_account_sync, HOME_URL, HISTORY_URL, DOWNLOADS_URL};
 use crate::ui_handler::handle_zenith_request;
 use crate::menu::AppMenu;
+use crate::db::Database;
 
 pub const CHROME_HEIGHT: u32 = 82;
 
@@ -29,23 +29,18 @@ pub struct BrowserApp {
     pub current_theme: String,
     pub auth_windows: Vec<AuthWindow>,
     pub background_sync_webview: Option<WebView>,
-    pub recent_sites: Vec<RecentSite>,
-    pub bookmarks: Vec<BookmarkSite>,
-    pub downloads: Vec<DownloadEntry>,
     pub menu: AppMenu,
     pub img_ctx: Arc<Mutex<Option<(String, String)>>>,
-    pub final_ui_html: Arc<String>,
     pub current_search_url: String,
+    pub db: Arc<Database>,
+    pub proxy: EventLoopProxy<UserEvent>,
 }
 
 impl BrowserApp {
-    pub fn new(event_loop: &EventLoopWindowTarget<UserEvent>, proxy: &EventLoopProxy<UserEvent>) -> Self {
+    pub fn new(event_loop: &EventLoopWindowTarget<UserEvent>, proxy: &EventLoopProxy<UserEvent>, db: Arc<Database>) -> Self {
         let profile_dir = crate::config::profile_directory();
         let mut web_context = WebContext::new(Some(profile_dir.join("webview")));
         
-        let recent_sites = load_recent_sites();
-        let bookmarks = load_bookmarks();
-        let downloads = load_downloads();
         let current_theme = "dark".to_string();
         let current_search_url = "https://www.google.com/search?q={}".to_string();
 
@@ -55,18 +50,10 @@ impl BrowserApp {
             .build(event_loop)
             .unwrap();
 
-        let ui_html = include_str!("ui/ui.html");
-        let ui_css = include_str!("ui/ui.css");
-        let final_ui_html = Arc::new(ui_html.replace(
-            "<head>",
-            &format!("<head><style>{}</style>", ui_css),
-        ));
-
         let menu = AppMenu::new(&current_theme);
         menu.init();
 
         let chrome_proxy = proxy.clone();
-        let chrome_protocol_html = final_ui_html.clone();
         let chrome_webview = WebViewBuilder::new_with_web_context(&mut web_context)
             .with_transparent(true)
             .with_background_color((0, 0, 0, 0)) // Glass background
@@ -74,7 +61,7 @@ impl BrowserApp {
             .with_bounds(Self::chrome_bounds(&window))
             .with_url("zenith://assets/ui")
             .with_custom_protocol("zenith".into(), move |_id, request| {
-                handle_zenith_request(chrome_protocol_html.as_str(), request)
+                handle_zenith_request("", request)
             })
             .with_ipc_handler(move |request| {
                 crate::ipc::dispatch_ipc_message(request.body(), &chrome_proxy, None);
@@ -93,13 +80,11 @@ impl BrowserApp {
             current_theme,
             auth_windows: Vec::new(),
             background_sync_webview: None,
-            recent_sites,
-            bookmarks,
-            downloads,
             menu,
             img_ctx: Arc::new(Mutex::new(None)),
-            final_ui_html,
             current_search_url,
+            db,
+            proxy: proxy.clone(),
         };
 
         app.new_tab(None, true, proxy);
@@ -107,10 +92,10 @@ impl BrowserApp {
     }
 
     pub fn chrome_bounds(window: &Window) -> Rect {
-        let size = window.inner_size().to_logical::<u32>(window.scale_factor());
+        let _size = window.inner_size().to_logical::<u32>(window.scale_factor());
         Rect {
-            position: LogicalPosition::new(0, 0).into(),
-            size: WryLogicalSize::new(size.width.max(1), 600).into(),
+            position: LogicalPosition::new(0.0, 0.0).into(),
+            size: window.inner_size().into(),
         }
     }
 
@@ -145,7 +130,6 @@ impl BrowserApp {
             &start_url,
             Self::content_bounds(&self.window),
             proxy,
-            self.final_ui_html.clone(),
         ) {
             Self::apply_theme_to_webview(&tab.webview, &self.current_theme);
             self.tabs.push(tab);
@@ -154,7 +138,7 @@ impl BrowserApp {
             }
             
             let new_tab_index = self.tabs.len() - 1;
-            self.sync_tab_data(new_tab_index);
+            self.sync_tab_data(new_tab_index, &self.proxy);
             
             self.next_tab_id += 1;
             self.apply_tab_visibility();
@@ -162,7 +146,7 @@ impl BrowserApp {
 
             
             if self.chrome_ready {
-                self.sync_chrome_state();
+                self.sync_chrome_state(&self.proxy);
             }
         }
     }
@@ -173,7 +157,7 @@ impl BrowserApp {
             self.apply_tab_visibility();
 
             if self.chrome_ready {
-                self.sync_chrome_state();
+                self.sync_chrome_state(&self.proxy);
             }
         }
     }
@@ -195,7 +179,7 @@ impl BrowserApp {
 
             self.apply_tab_visibility();
             if self.chrome_ready {
-                self.sync_chrome_state();
+                self.sync_chrome_state(&self.proxy);
             }
         }
     }
@@ -214,7 +198,7 @@ impl BrowserApp {
                     tab.title = fallback_title_for_url(&next_url);
                     let _ = tab.webview.load_url(&next_url);
                     if self.chrome_ready {
-                        self.sync_chrome_state();
+                        self.sync_chrome_state(&self.proxy);
                     }
                 }
             }
@@ -239,28 +223,35 @@ impl BrowserApp {
         }
     }
 
-    pub fn sync_chrome_state(&self) {
-        let state = ChromeState {
-            tabs: self.tabs
-                .iter()
-                .map(|t| {
-                    let is_bookmarked = self.bookmarks.iter().any(|b| b.url == t.url);
-                    ChromeTabState {
-                        id: t.id,
-                        title: t.title.clone(),
-                        url: t.url.clone(),
-                        is_bookmarked,
-                        active_permissions: t.active_permissions.clone(),
-                    }
-                })
-                .collect(),
-            active_id: self.active_tab_id,
-        };
+    pub fn sync_chrome_state(&self, proxy: &EventLoopProxy<UserEvent>) {
+        let db = self.db.clone();
+        let tabs_snapshot = self.tabs.iter().map(|t| (t.id, t.title.clone(), t.url.clone(), t.active_permissions.clone())).collect::<Vec<_>>();
+        let active_id = self.active_tab_id;
+        let proxy = proxy.clone();
 
-        if let Ok(json) = serde_json::to_string(&state) {
-            let js = format!("if(window.zenithSetState) window.zenithSetState({json});");
-            let _ = self.chrome_webview.evaluate_script(&js);
-        }
+        tokio::spawn(async move {
+            let mut tabs_state = Vec::new();
+            for (id, title, url, permissions) in tabs_snapshot {
+                let is_bm = sqlx::query("SELECT 1 FROM bookmarks WHERE url = ?").bind(&url).fetch_optional(&db.pool).await.unwrap_or_default().is_some();
+                
+                tabs_state.push(ChromeTabState {
+                    id,
+                    title,
+                    url,
+                    is_bookmarked: is_bm,
+                    active_permissions: permissions,
+                });
+            }
+
+            let state = ChromeState {
+                tabs: tabs_state,
+                active_id,
+            };
+
+            if let Ok(json) = serde_json::to_string(&state) {
+                let _ = proxy.send_event(UserEvent::ChromeStateResult(json));
+            }
+        });
     }
 
     pub fn elevate_ui_layers(&self) {
@@ -283,55 +274,89 @@ impl BrowserApp {
         let _ = webview.evaluate_script(&js);
     }
 
-    pub fn sync_tab_data(&self, index: usize) {
+    pub fn sync_tab_data(&self, index: usize, proxy: &EventLoopProxy<UserEvent>) {
         if let Some(tab) = self.tabs.get(index) {
-            // Always sync theme to every tab
-            if let Ok(theme_json) = serde_json::to_string(&self.current_theme) {
-                let _ = tab.webview.evaluate_script(&format!("window.postMessage({{ type: 'theme', theme: {theme_json} }}, '*');"));
-            }
+            let tab_url = tab.url.clone();
+            let theme = self.current_theme.clone();
+            let db = self.db.clone();
+            let proxy = proxy.clone();
 
-            if tab.url.starts_with(HOME_URL) {
-                if let Ok(sites_json) = serde_json::to_string(&self.recent_sites) {
-                    let _ = tab.webview.evaluate_script(&format!("window.postMessage({{ type: 'recent-sites', sites: {sites_json} }}, '*');"));
+            tokio::spawn(async move {
+                let mut scripts = Vec::new();
+                // Theme
+                if let Ok(theme_json) = serde_json::to_string(&theme) {
+                    scripts.push(format!("window.postMessage({{ type: 'theme', theme: {theme_json} }}, '*');"));
                 }
-                if let Ok(bookmarks_json) = serde_json::to_string(&self.bookmarks) {
-                    let _ = tab.webview.evaluate_script(&format!("window.postMessage({{ type: 'bookmarks-data', bookmarks: {bookmarks_json} }}, '*');"));
+
+                if tab_url.starts_with(HOME_URL) {
+                    if let Ok(recent) = db.get_recent_history(20).await {
+                        if let Ok(sites_json) = serde_json::to_string(&recent) {
+                            scripts.push(format!("window.postMessage({{ type: 'recent-sites', sites: {sites_json} }}, '*');"));
+                        }
+                    }
+                    if let Ok(bm) = db.get_bookmarks().await {
+                        if let Ok(bookmarks_json) = serde_json::to_string(&bm) {
+                            scripts.push(format!("window.postMessage({{ type: 'bookmarks-data', bookmarks: {bookmarks_json} }}, '*');"));
+                        }
+                    }
                 }
-            }
-            if tab.url.starts_with(HISTORY_URL) {
-                if let Ok(history_json) = serde_json::to_string(&self.recent_sites) {
-                    let _ = tab.webview.evaluate_script(&format!("window.postMessage({{ type: 'history-data', entries: {history_json} }}, '*');"));
+                if tab_url.starts_with(HISTORY_URL) {
+                    if let Ok(recent) = db.get_recent_history(100).await {
+                        if let Ok(history_json) = serde_json::to_string(&recent) {
+                            scripts.push(format!("window.postMessage({{ type: 'history-data', entries: {history_json} }}, '*');"));
+                        }
+                    }
                 }
-            }
-            if tab.url.starts_with(DOWNLOADS_URL) {
-                if let Ok(downloads_json) = serde_json::to_string(&self.downloads) {
-                    let _ = tab.webview.evaluate_script(&format!("window.postMessage({{ type: 'downloads-data', entries: {downloads_json} }}, '*');"));
+                if tab_url.starts_with(DOWNLOADS_URL) {
+                    if let Ok(down) = db.get_downloads().await {
+                        if let Ok(downloads_json) = serde_json::to_string(&down) {
+                            scripts.push(format!("window.postMessage({{ type: 'downloads-data', entries: {downloads_json} }}, '*');"));
+                        }
+                    }
                 }
-            }
+                
+                let combined_payload = scripts.join("\n");
+                let _ = proxy.send_event(UserEvent::TabDataResult { index, payload: combined_payload });
+            });
         }
     }
 
-    pub fn sync_all_tabs_data(&self) {
+    pub fn sync_all_tabs_data(&self, proxy: &EventLoopProxy<UserEvent>) {
         for i in 0..self.tabs.len() {
-            self.sync_tab_data(i);
+            self.sync_tab_data(i, proxy);
         }
+    }
+
+    pub fn sync_chrome_ready(&self, proxy: &EventLoopProxy<UserEvent>) {
+        self.sync_chrome_state(proxy);
+        self.sync_all_tabs_data(proxy);
     }
 
     pub fn toggle_bookmark(&mut self, tab_id: Option<u32>) {
-        if let Some(target_id) = tab_id.or(self.active_tab_id)
-            && let Some(tab) = self.tabs.iter().find(|t| t.id == target_id)
-        {
-            let bookmark_url = tab.url.clone();
-            let bookmark_title = tab.title.clone();
-            let (changed, was_added) = toggle_bookmark(&mut self.bookmarks, &bookmark_url, &bookmark_title);
-            if changed {
-                save_bookmarks(&self.bookmarks);
-                self.sync_chrome_state();
-                self.sync_all_tabs_data();
+        if let Some(target_id) = tab_id.or(self.active_tab_id) {
+            if let Some(tab) = self.tabs.iter().find(|t| t.id == target_id) {
+                let db = self.db.clone();
+                let url = tab.url.clone();
+                let title = tab.title.clone();
+                let proxy = self.proxy.clone();
+
+                tokio::spawn(async move {
+                    let is_bm = sqlx::query("SELECT 1 FROM bookmarks WHERE url = ?").bind(&url).fetch_optional(&db.pool).await.unwrap_or_default().is_some();
+                    
+                    let res = if is_bm {
+                        db.remove_bookmark(&url).await
+                    } else {
+                        db.add_bookmark(&url, &title).await
+                    };
+
+                    if res.is_ok() {
+                        let _ = proxy.send_event(UserEvent::ChromeReady); // Re-sync
+                    }
+                });
                 
-                let msg = if was_added { "Added Bookmark" } else { "Bookmark Removed" };
-                let toast_type = if was_added { "success" } else { "info" };
-                self.show_toast(msg, toast_type);
+                // Optimistic sync trigger for now
+                self.sync_chrome_state(&self.proxy);
+                self.sync_all_tabs_data(&self.proxy);
             }
         }
     }
@@ -345,9 +370,6 @@ impl BrowserApp {
 
 
     pub fn fetch_suggestions(&self, query: String, proxy: EventLoopProxy<UserEvent>) {
-        let recent_sites = self.recent_sites.clone();
-        let bookmarks = self.bookmarks.clone();
-        
         let mut tabs_snapshot = Vec::new();
         for t in &self.tabs {
             tabs_snapshot.push(Suggestion {
@@ -358,57 +380,26 @@ impl BrowserApp {
             });
         }
 
+        let db = self.db.clone();
         tokio::spawn(async move {
-            let results = tokio::task::spawn_blocking(move || {
-                let query = query.trim().to_string();
-                if query.is_empty() {
-                    return Vec::new();
+            let mut results = match db.search_suggestions(&query).await {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!("[DB] Search error: {e}");
+                    Vec::new()
                 }
+            };
 
-                let query_lc = query.to_lowercase();
-                let mut results: Vec<Suggestion> = Vec::new();
-
-                // 1. Tabs
-                for t in tabs_snapshot {
-                    if results.len() >= 8 { break; }
-                    if t.title.to_lowercase().contains(&query_lc) || t.url.as_ref().map(|u| u.to_lowercase()).unwrap_or_default().contains(&query_lc) {
-                        if !results.iter().any(|r| r.title == t.title) {
-                            results.push(t);
-                        }
+            // Add Tab suggestions
+            let query_lc = query.to_lowercase();
+            for t in tabs_snapshot {
+                if results.len() >= 15 { break; }
+                if t.title.to_lowercase().contains(&query_lc) || t.url.as_ref().map(|u| u.to_lowercase()).unwrap_or_default().contains(&query_lc) {
+                    if !results.iter().any(|r| r.title == t.title) {
+                        results.push(t);
                     }
                 }
-
-                // 2. Bookmarks
-                for b in &bookmarks {
-                    if results.len() >= 12 { break; }
-                    if b.url.to_lowercase().contains(&query_lc) || b.title.to_lowercase().contains(&query_lc) {
-                        if !results.iter().any(|r| r.url.as_ref() == Some(&b.url)) {
-                            results.push(Suggestion {
-                                title: b.title.clone(),
-                                url: Some(b.url.clone()),
-                                suggestion_type: "bookmark".to_string(),
-                                tab_id: None,
-                            });
-                        }
-                    }
-                }
-
-                // 3. History
-                for s in &recent_sites {
-                    if results.len() >= 15 { break; }
-                    if s.url.to_lowercase().contains(&query_lc) || s.title.to_lowercase().contains(&query_lc) {
-                        if !results.iter().any(|r| r.url.as_ref() == Some(&s.url)) {
-                            results.push(Suggestion {
-                                title: s.title.clone(),
-                                url: Some(s.url.clone()),
-                                suggestion_type: "history".to_string(),
-                                tab_id: None,
-                            });
-                        }
-                    }
-                }
-                results
-            }).await.unwrap_or_default();
+            }
 
             let _ = proxy.send_event(UserEvent::SuggestionResults(results));
         });

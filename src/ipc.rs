@@ -8,7 +8,7 @@ pub enum BrowserAction {
     Reload,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Suggestion {
     pub title: String,
@@ -118,6 +118,8 @@ pub enum UserEvent {
     },
     GetSuggestions(String),
     SuggestionResults(Vec<Suggestion>),
+    ChromeStateResult(String),
+    TabDataResult { index: usize, payload: String },
 }
 
 #[derive(Debug, Deserialize)]
@@ -214,10 +216,10 @@ pub fn dispatch_ipc_message(
             let _ = proxy.send_event(UserEvent::BookmarkActiveTab(tab_id));
         }
         "open_auth" => {
-            if fallback_tab_id.is_none()
-                && let Some(url) = message.url
-            {
-                let _ = proxy.send_event(UserEvent::OpenAuthWindow(url));
+            if fallback_tab_id.is_none() {
+                if let Some(url) = message.url {
+                    let _ = proxy.send_event(UserEvent::OpenAuthWindow(url));
+                }
             }
         }
         "tab_url_update" => {

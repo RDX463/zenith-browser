@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --color-zenith-bg: #0a0a0c;
+  --color-zenith-overlay: rgba(20, 20, 25, 0.95);
+  --color-zenith-border: rgba(255, 255, 255, 0.15);
+  --color-zenith-primary: #3b82f6;
+  --color-zenith-text: #f8fafc;
+  --color-zenith-text-muted: #94a3b8;
+  
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+:root {
+  background-color: transparent;
+  color-scheme: dark;
+  user-select: none;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  color: var(--color-zenith-text);
+  background: transparent;
+}
+
+.glass {
+  background: var(--color-zenith-overlay);
+  backdrop-filter: blur(60px) saturate(200%);
+  -webkit-backdrop-filter: blur(60px) saturate(200%);
+  box-shadow: 
+    0 10px 40px -10px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.glass-interactive:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-user-drag: none;
+}

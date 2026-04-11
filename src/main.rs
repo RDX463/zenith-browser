@@ -2,6 +2,8 @@
 
 mod app;
 mod config;
+mod db;
+mod assets;
 mod ipc;
 mod menu;
 mod tab;
@@ -13,7 +15,6 @@ use tao::event_loop::{ControlFlow, EventLoopBuilder};
 use tao::dpi::LogicalSize;
 use app::BrowserApp;
 use ipc::{UserEvent, BrowserAction};
-use config::{save_recent_sites, save_downloads, record_download_started, record_download_completed, upsert_recent_site};
 use utils::{should_track_recent_site, fallback_title_for_url, resolved_tab_title, should_warmup_youtube_account_sync};
 use muda::ContextMenu;
 
@@ -21,8 +22,14 @@ use muda::ContextMenu;
 async fn main() {
     let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
     let proxy = event_loop.create_proxy();
+    
+    let profile_dir = config::profile_directory();
+    let db = std::sync::Arc::new(db::Database::new(&profile_dir).await.expect("Failed to init database"));
+    if let Err(e) = db.migrate_from_json().await {
+        eprintln!("[DB] Migration failed: {e}");
+    }
 
-    let mut app = BrowserApp::new(&event_loop, &proxy);
+    let mut app = BrowserApp::new(&event_loop, &proxy, db.clone());
 
     event_loop.run(move |event, event_loop_target, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -79,8 +86,7 @@ async fn main() {
         match event {
             Event::UserEvent(UserEvent::ChromeReady) => {
                 app.chrome_ready = true;
-                app.sync_chrome_state();
-                app.sync_all_tabs_data();
+                app.sync_chrome_ready(&proxy);
             }
             Event::UserEvent(UserEvent::NewTab { url, activate }) => {
                 app.new_tab(url, activate, &proxy);
@@ -110,16 +116,24 @@ async fn main() {
                 app.toggle_bookmark(tab_id);
             }
             Event::UserEvent(UserEvent::DownloadStarted { url, path }) => {
-                record_download_started(&mut app.downloads, &url, &path);
-                save_downloads(&app.downloads);
-                app.sync_all_tabs_data();
+                let db = app.db.clone();
+                let url_c = url.clone();
+                let path_c = path.clone();
+                tokio::spawn(async move {
+                    let _ = db.add_download(&url_c, &path_c, "in_progress").await;
+                });
+                app.sync_all_tabs_data(&proxy);
                 let filename = std::path::Path::new(&path).file_name().and_then(|s| s.to_str()).unwrap_or("file");
                 app.show_toast(&format!("Downloading {}", filename), "info");
             }
             Event::UserEvent(UserEvent::DownloadCompleted { url, path, success }) => {
-                record_download_completed(&mut app.downloads, &url, path.clone(), success);
-                save_downloads(&app.downloads);
-                app.sync_all_tabs_data();
+                let db = app.db.clone();
+                let url_c = url.clone();
+                let status = if success { "completed" } else { "failed" };
+                tokio::spawn(async move {
+                    let _ = db.update_download_status(&url_c, status).await;
+                });
+                app.sync_all_tabs_data(&proxy);
                 let filename = path.as_ref().and_then(|p| std::path::Path::new(p).file_name()).and_then(|s| s.to_str()).unwrap_or("file");
                 let (msg, toast_type) = if success {
                     (format!("Finished downloading {}", filename), "success")
@@ -128,15 +142,30 @@ async fn main() {
                 };
                 app.show_toast(&msg, toast_type);
             }
+            Event::UserEvent(UserEvent::ChromeStateResult(json)) => {
+                let js = format!("if(window.zenithSetState) window.zenithSetState({json});");
+                let _ = app.chrome_webview.evaluate_script(&js);
+            }
+            Event::UserEvent(UserEvent::TabDataResult { index, payload }) => {
+                if let Some(tab) = app.tabs.get(index) {
+                    let _ = tab.webview.evaluate_script(&payload);
+                }
+            }
             Event::UserEvent(UserEvent::ClearHistory) => {
-                app.recent_sites.clear();
-                save_recent_sites(&app.recent_sites);
-                app.sync_all_tabs_data();
+                let db = app.db.clone();
+                tokio::spawn(async move {
+                    let _ = db.clear_history().await;
+                });
+                app.sync_all_tabs_data(&proxy);
+                app.show_toast("History cleared", "info");
             }
             Event::UserEvent(UserEvent::ClearDownloads) => {
-                app.downloads.clear();
-                save_downloads(&app.downloads);
-                app.sync_all_tabs_data();
+                let db = app.db.clone();
+                tokio::spawn(async move {
+                    let _ = db.clear_downloads().await;
+                });
+                app.sync_all_tabs_data(&proxy);
+                app.show_toast("Downloads cleared", "info");
             }
             Event::UserEvent(UserEvent::OpenAuthWindow(url)) => {
                 if let Ok(auth_window) = tao::window::WindowBuilder::new()
@@ -190,7 +219,7 @@ async fn main() {
                     } else {
                         tab.active_permissions.retain(|perm| perm != &p);
                     }
-                    if app.chrome_ready { app.sync_chrome_state(); }
+                    if app.chrome_ready { app.sync_chrome_state(&proxy); }
                 }
             }
             Event::UserEvent(UserEvent::TabUrlChanged { tab_id, url }) => {
@@ -207,26 +236,36 @@ async fn main() {
                         ));
                     }
                     BrowserApp::apply_theme_to_webview(&tab.webview, &app.current_theme);
-                    if should_track_recent_site(&tab.url) && upsert_recent_site(&mut app.recent_sites, &tab.url, &tab.title) {
-                        save_recent_sites(&app.recent_sites);
-                        app.sync_all_tabs_data();
+                    if should_track_recent_site(&tab.url) {
+                        let db = app.db.clone();
+                        let url_c = tab.url.clone();
+                        let title_c = tab.title.clone();
+                        tokio::spawn(async move {
+                            let _ = db.add_history(&url_c, &title_c).await;
+                        });
+                        app.sync_all_tabs_data(&proxy);
                     } else {
-                        app.sync_tab_data(index);
+                        app.sync_tab_data(index, &proxy);
                     }
-                    if app.chrome_ready { app.sync_chrome_state(); }
+                    if app.chrome_ready { app.sync_chrome_state(&proxy); }
                 }
             }
             Event::UserEvent(UserEvent::TabTitleChanged { tab_id, title }) => {
                 if let Some(index) = app.tabs.iter().position(|t| t.id == tab_id) {
                     let tab = &mut app.tabs[index];
                     tab.title = resolved_tab_title(&title, &tab.url);
-                    if should_track_recent_site(&tab.url) && upsert_recent_site(&mut app.recent_sites, &tab.url, &tab.title) {
-                        save_recent_sites(&app.recent_sites);
-                        app.sync_all_tabs_data();
+                    if should_track_recent_site(&tab.url) {
+                        let db = app.db.clone();
+                        let url_c = tab.url.clone();
+                        let title_c = tab.title.clone();
+                        tokio::spawn(async move {
+                            let _ = db.add_history(&url_c, &title_c).await;
+                        });
+                        app.sync_all_tabs_data(&proxy);
                     } else {
-                        app.sync_tab_data(index);
+                        app.sync_tab_data(index, &proxy);
                     }
-                    if app.chrome_ready { app.sync_chrome_state(); }
+                    if app.chrome_ready { app.sync_chrome_state(&proxy); }
                 }
             }
             Event::UserEvent(UserEvent::SettingsChanged { key, value }) => {
@@ -258,16 +297,20 @@ async fn main() {
                 }
             }
             Event::UserEvent(UserEvent::FindInPage { query, forward }) => {
-                if let Some(tab_id) = app.active_tab_id && let Some(tab) = app.tabs.iter().find(|t| t.id == tab_id) {
-                    let backwards = if forward { "false" } else { "true" };
-                    let escaped = serde_json::to_string(&query).unwrap();
-                    let _ = tab.webview.evaluate_script(&format!("window.find({}, false, {}, true, false, false, false);", escaped, backwards));
+                if let Some(tab_id) = app.active_tab_id {
+                    if let Some(tab) = app.tabs.iter().find(|t| t.id == tab_id) {
+                        let backwards = if forward { "false" } else { "true" };
+                        let escaped = serde_json::to_string(&query).unwrap();
+                        let _ = tab.webview.evaluate_script(&format!("window.find({}, false, {}, true, false, false, false);", escaped, backwards));
+                    }
                 }
             }
             Event::UserEvent(UserEvent::OpenFindBar) => {
-                if let Some(tab_id) = app.active_tab_id && let Some(tab) = app.tabs.iter().find(|t| t.id == tab_id) {
-                    let find_js = include_str!("ui/find_bar.js");
-                    let _ = tab.webview.evaluate_script(find_js);
+                if let Some(tab_id) = app.active_tab_id {
+                    if let Some(tab) = app.tabs.iter().find(|t| t.id == tab_id) {
+                        let find_js = include_str!("ui/find_bar.js");
+                        let _ = tab.webview.evaluate_script(find_js);
+                    }
                 }
             }
             Event::UserEvent(UserEvent::ImageContextMenu { url, filename, x, y }) => {
@@ -282,9 +325,15 @@ async fn main() {
                 let dl_dir = dirs::download_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
                 let save_path = dl_dir.join(&filename);
                 let path_str = save_path.display().to_string();
-                record_download_started(&mut app.downloads, &url, &path_str);
-                save_downloads(&app.downloads);
-                app.sync_all_tabs_data();
+                
+                let db_c = app.db.clone();
+                let url_c1 = url.clone();
+                let path_str_c1 = path_str.clone();
+                tokio::spawn(async move {
+                    let _ = db_c.add_download(&url_c1, &path_str_c1, "in_progress").await;
+                });
+
+                app.sync_all_tabs_data(&proxy);
                 app.show_toast(&format!("Downloading {}", filename), "info");
                 let proxy_clone = proxy.clone();
                 let url_clone = url.clone();
