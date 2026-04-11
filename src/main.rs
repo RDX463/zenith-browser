@@ -331,7 +331,6 @@ async fn main() {
                 #[cfg(not(target_os = "macos"))]
                 let _ = (x, y); // Suppress unused variable warnings
             }
-            }
             Event::UserEvent(UserEvent::SaveImage { url, filename }) => {
                 let dl_dir = dirs::download_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
                 let save_path = dl_dir.join(&filename);
