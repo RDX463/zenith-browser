@@ -1,15 +1,21 @@
 use std::sync::{Arc, Mutex};
-use tao::window::Window;
-use tao::event_loop::{EventLoopProxy, ControlFlow, EventLoopWindowTarget};
 use tao::dpi::LogicalSize;
-use wry::{WebView, WebViewBuilder, WebContext, Rect, dpi::{LogicalPosition, LogicalSize as WryLogicalSize}};
+use tao::event_loop::{ControlFlow, EventLoopProxy, EventLoopWindowTarget};
+use tao::window::Window;
+use wry::{
+    dpi::{LogicalPosition, LogicalSize as WryLogicalSize},
+    Rect, WebContext, WebView, WebViewBuilder,
+};
 
-use crate::ipc::{UserEvent, BrowserAction, Suggestion, ChromeState, ChromeTabState};
-use crate::tab::{BrowserTab, build_browser_tab};
-use crate::utils::{is_assets_url, fallback_title_for_url, normalize_user_input_url, should_warmup_youtube_account_sync, HOME_URL, HISTORY_URL, DOWNLOADS_URL};
-use crate::ui_handler::handle_zenith_request;
-use crate::menu::AppMenu;
 use crate::db::Database;
+use crate::ipc::{BrowserAction, ChromeState, ChromeTabState, Suggestion, UserEvent};
+use crate::menu::AppMenu;
+use crate::tab::{build_browser_tab, BrowserTab};
+use crate::ui_handler::handle_zenith_request;
+use crate::utils::{
+    fallback_title_for_url, is_assets_url, normalize_user_input_url,
+    should_warmup_youtube_account_sync, DOWNLOADS_URL, HISTORY_URL, HOME_URL,
+};
 
 pub const CHROME_HEIGHT: u32 = 82;
 
@@ -37,10 +43,14 @@ pub struct BrowserApp {
 }
 
 impl BrowserApp {
-    pub fn new(event_loop: &EventLoopWindowTarget<UserEvent>, proxy: &EventLoopProxy<UserEvent>, db: Arc<Database>) -> Self {
+    pub fn new(
+        event_loop: &EventLoopWindowTarget<UserEvent>,
+        proxy: &EventLoopProxy<UserEvent>,
+        db: Arc<Database>,
+    ) -> Self {
         let profile_dir = crate::config::profile_directory();
         let mut web_context = WebContext::new(Some(profile_dir.join("webview")));
-        
+
         let current_theme = "dark".to_string();
         let current_search_url = "https://www.google.com/search?q={}".to_string();
 
@@ -99,9 +109,6 @@ impl BrowserApp {
         }
     }
 
-
-
-
     pub fn content_bounds(window: &Window) -> Rect {
         let size = window.inner_size().to_logical::<u32>(window.scale_factor());
         let y = CHROME_HEIGHT.min(size.height);
@@ -113,15 +120,23 @@ impl BrowserApp {
     }
 
     pub fn update_bounds(&self) {
-        let _ = self.chrome_webview.set_bounds(Self::chrome_bounds(&self.window));
+        let _ = self
+            .chrome_webview
+            .set_bounds(Self::chrome_bounds(&self.window));
         let bounds = Self::content_bounds(&self.window);
         for tab in &self.tabs {
             let _ = tab.webview.set_bounds(bounds);
         }
     }
 
-    pub fn new_tab(&mut self, url: Option<String>, activate: bool, proxy: &EventLoopProxy<UserEvent>) {
-        let start_url = normalize_user_input_url(url.as_deref().unwrap_or(HOME_URL), &self.current_search_url);
+    pub fn new_tab(
+        &mut self,
+        url: Option<String>,
+        activate: bool,
+        proxy: &EventLoopProxy<UserEvent>,
+    ) {
+        let start_url =
+            normalize_user_input_url(url.as_deref().unwrap_or(HOME_URL), &self.current_search_url);
 
         if let Some(tab) = build_browser_tab(
             &self.window,
@@ -136,15 +151,13 @@ impl BrowserApp {
             if activate || self.active_tab_id.is_none() {
                 self.active_tab_id = Some(self.next_tab_id);
             }
-            
+
             let new_tab_index = self.tabs.len() - 1;
             self.sync_tab_data(new_tab_index, &self.proxy);
-            
+
             self.next_tab_id += 1;
             self.apply_tab_visibility();
-            
 
-            
             if self.chrome_ready {
                 self.sync_chrome_state(&self.proxy);
             }
@@ -184,7 +197,12 @@ impl BrowserApp {
         }
     }
 
-    pub fn navigate_tab(&mut self, tab_id: Option<u32>, url: String, proxy: &EventLoopProxy<UserEvent>) {
+    pub fn navigate_tab(
+        &mut self,
+        tab_id: Option<u32>,
+        url: String,
+        proxy: &EventLoopProxy<UserEvent>,
+    ) {
         if let Some(target_id) = tab_id.or(self.active_tab_id) {
             let next_url = normalize_user_input_url(&url, &self.current_search_url);
             if !(next_url.starts_with("zenith://") && !is_assets_url(&next_url)) {
@@ -225,15 +243,31 @@ impl BrowserApp {
 
     pub fn sync_chrome_state(&self, proxy: &EventLoopProxy<UserEvent>) {
         let db = self.db.clone();
-        let tabs_snapshot = self.tabs.iter().map(|t| (t.id, t.title.clone(), t.url.clone(), t.active_permissions.clone())).collect::<Vec<_>>();
+        let tabs_snapshot = self
+            .tabs
+            .iter()
+            .map(|t| {
+                (
+                    t.id,
+                    t.title.clone(),
+                    t.url.clone(),
+                    t.active_permissions.clone(),
+                )
+            })
+            .collect::<Vec<_>>();
         let active_id = self.active_tab_id;
         let proxy = proxy.clone();
 
         tokio::spawn(async move {
             let mut tabs_state = Vec::new();
             for (id, title, url, permissions) in tabs_snapshot {
-                let is_bm = sqlx::query("SELECT 1 FROM bookmarks WHERE url = ?").bind(&url).fetch_optional(&db.pool).await.unwrap_or_default().is_some();
-                
+                let is_bm = sqlx::query("SELECT 1 FROM bookmarks WHERE url = ?")
+                    .bind(&url)
+                    .fetch_optional(&db.pool)
+                    .await
+                    .unwrap_or_default()
+                    .is_some();
+
                 tabs_state.push(ChromeTabState {
                     id,
                     title,
@@ -270,7 +304,9 @@ impl BrowserApp {
 
     pub fn apply_theme_to_webview(webview: &WebView, theme: &str) {
         let theme_json = serde_json::to_string(theme).unwrap_or_else(|_| "\"dark\"".into());
-        let js = format!("if(window.__zenithApplyBrowserTheme) window.__zenithApplyBrowserTheme({theme_json});");
+        let js = format!(
+            "if(window.__zenithApplyBrowserTheme) window.__zenithApplyBrowserTheme({theme_json});"
+        );
         let _ = webview.evaluate_script(&js);
     }
 
@@ -285,7 +321,9 @@ impl BrowserApp {
                 let mut scripts = Vec::new();
                 // Theme
                 if let Ok(theme_json) = serde_json::to_string(&theme) {
-                    scripts.push(format!("window.postMessage({{ type: 'theme', theme: {theme_json} }}, '*');"));
+                    scripts.push(format!(
+                        "window.postMessage({{ type: 'theme', theme: {theme_json} }}, '*');"
+                    ));
                 }
 
                 if tab_url.starts_with(HOME_URL) {
@@ -314,9 +352,12 @@ impl BrowserApp {
                         }
                     }
                 }
-                
+
                 let combined_payload = scripts.join("\n");
-                let _ = proxy.send_event(UserEvent::TabDataResult { index, payload: combined_payload });
+                let _ = proxy.send_event(UserEvent::TabDataResult {
+                    index,
+                    payload: combined_payload,
+                });
             });
         }
     }
@@ -341,8 +382,13 @@ impl BrowserApp {
                 let proxy = self.proxy.clone();
 
                 tokio::spawn(async move {
-                    let is_bm = sqlx::query("SELECT 1 FROM bookmarks WHERE url = ?").bind(&url).fetch_optional(&db.pool).await.unwrap_or_default().is_some();
-                    
+                    let is_bm = sqlx::query("SELECT 1 FROM bookmarks WHERE url = ?")
+                        .bind(&url)
+                        .fetch_optional(&db.pool)
+                        .await
+                        .unwrap_or_default()
+                        .is_some();
+
                     let res = if is_bm {
                         db.remove_bookmark(&url).await
                     } else {
@@ -353,7 +399,7 @@ impl BrowserApp {
                         let _ = proxy.send_event(UserEvent::ChromeReady); // Re-sync
                     }
                 });
-                
+
                 // Optimistic sync trigger for now
                 self.sync_chrome_state(&self.proxy);
                 self.sync_all_tabs_data(&self.proxy);
@@ -367,7 +413,6 @@ impl BrowserApp {
         let js = format!("if (window.showToast) window.showToast({msg_json}, {type_json});");
         let _ = self.chrome_webview.evaluate_script(&js);
     }
-
 
     pub fn fetch_suggestions(&self, query: String, proxy: EventLoopProxy<UserEvent>) {
         let mut tabs_snapshot = Vec::new();
@@ -393,8 +438,16 @@ impl BrowserApp {
             // Add Tab suggestions
             let query_lc = query.to_lowercase();
             for t in tabs_snapshot {
-                if results.len() >= 15 { break; }
-                if t.title.to_lowercase().contains(&query_lc) || t.url.as_ref().map(|u| u.to_lowercase()).unwrap_or_default().contains(&query_lc) {
+                if results.len() >= 15 {
+                    break;
+                }
+                if t.title.to_lowercase().contains(&query_lc)
+                    || t.url
+                        .as_ref()
+                        .map(|u| u.to_lowercase())
+                        .unwrap_or_default()
+                        .contains(&query_lc)
+                {
                     if !results.iter().any(|r| r.title == t.title) {
                         results.push(t);
                     }
@@ -405,5 +458,3 @@ impl BrowserApp {
         });
     }
 }
-
-

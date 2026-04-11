@@ -1,9 +1,12 @@
-use tao::window::Window;
-use tao::event_loop::EventLoopProxy;
-use wry::{WebView, WebViewBuilder, WebContext, PageLoadEvent, Rect, http::Request};
-use crate::ipc::{UserEvent, dispatch_ipc_message};
-use crate::utils::{is_assets_url, is_http_like_url, should_open_auth_window, is_background_google_account_sync_url, CUSTOM_USER_AGENT};
+use crate::ipc::{dispatch_ipc_message, UserEvent};
 use crate::ui_handler::handle_zenith_request;
+use crate::utils::{
+    is_assets_url, is_background_google_account_sync_url, is_http_like_url,
+    should_open_auth_window, CUSTOM_USER_AGENT,
+};
+use tao::event_loop::EventLoopProxy;
+use tao::window::Window;
+use wry::{http::Request, PageLoadEvent, Rect, WebContext, WebView, WebViewBuilder};
 
 pub struct BrowserTab {
     pub id: u32,
@@ -29,7 +32,8 @@ pub fn get_user_agent_data_js() -> String {
             })
         });
     } catch (_) {}
-    "#.to_string()
+    "#
+    .to_string()
 }
 
 pub fn tab_initialization_script(tab_id: u32) -> String {
@@ -266,7 +270,10 @@ pub fn build_browser_tab(
             if next.starts_with("zenith://") {
                 return is_assets_url(&next);
             }
-            is_http_like_url(&next) || next.starts_with("file://") || next.starts_with("about:") || next.starts_with("data:")
+            is_http_like_url(&next)
+                || next.starts_with("file://")
+                || next.starts_with("about:")
+                || next.starts_with("data:")
         })
         .with_new_window_req_handler(move |next: String, _features: wry::NewWindowFeatures| {
             let next_url = next.clone();
@@ -276,7 +283,11 @@ pub fn build_browser_tab(
             } else if should_open_auth_window(&next_url) {
                 let _ = popup_proxy.send_event(UserEvent::OpenAuthWindow(next_url));
                 wry::NewWindowResponse::Deny
-            } else if is_http_like_url(&next_url) || next_url.starts_with("file://") || next_url.starts_with("about:") || next_url.starts_with("data:") {
+            } else if is_http_like_url(&next_url)
+                || next_url.starts_with("file://")
+                || next_url.starts_with("about:")
+                || next_url.starts_with("data:")
+            {
                 let _ = popup_proxy.send_event(UserEvent::NewTab {
                     url: Some(next_url),
                     activate: true,
@@ -294,11 +305,17 @@ pub fn build_browser_tab(
         })
         .with_download_started_handler(move |url: String, path: &mut std::path::PathBuf| {
             if path.as_os_str().is_empty() {
-                if let Some(filename) = url.split('/').last().and_then(|f: &str| if f.is_empty() { None } else { Some(f) }) {
+                if let Some(filename) =
+                    url.split('/')
+                        .last()
+                        .and_then(|f: &str| if f.is_empty() { None } else { Some(f) })
+                {
                     #[cfg(not(target_os = "windows"))]
-                    let dl_dir = dirs::download_dir().unwrap_or_else(|| std::path::PathBuf::from("/tmp"));
+                    let dl_dir =
+                        dirs::download_dir().unwrap_or_else(|| std::path::PathBuf::from("/tmp"));
                     #[cfg(target_os = "windows")]
-                    let dl_dir = dirs::download_dir().unwrap_or_else(|| std::path::PathBuf::from("C:\\Temp"));
+                    let dl_dir = dirs::download_dir()
+                        .unwrap_or_else(|| std::path::PathBuf::from("C:\\Temp"));
                     *path = dl_dir.join(filename.split('?').next().unwrap_or(filename));
                 }
             }
@@ -309,13 +326,15 @@ pub fn build_browser_tab(
             });
             true
         })
-        .with_download_completed_handler(move |url: String, path: Option<std::path::PathBuf>, success: bool| {
-            let _ = download_complete_proxy.send_event(UserEvent::DownloadCompleted {
-                url,
-                path: path.map(|p: std::path::PathBuf| p.to_string_lossy().to_string()),
-                success,
-            });
-        })
+        .with_download_completed_handler(
+            move |url: String, path: Option<std::path::PathBuf>, success: bool| {
+                let _ = download_complete_proxy.send_event(UserEvent::DownloadCompleted {
+                    url,
+                    path: path.map(|p: std::path::PathBuf| p.to_string_lossy().to_string()),
+                    success,
+                });
+            },
+        )
         .with_ipc_handler(move |request| {
             dispatch_ipc_message(request.body(), &ipc_proxy, Some(tab_id));
         })
@@ -323,9 +342,7 @@ pub fn build_browser_tab(
             handle_zenith_request("", request)
         });
 
-    let webview = webview_builder
-        .build_as_child(window)
-        .ok()?;
+    let webview = webview_builder.build_as_child(window).ok()?;
 
     Some(BrowserTab {
         id: tab_id,

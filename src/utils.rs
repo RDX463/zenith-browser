@@ -1,4 +1,4 @@
-use percent_encoding::{utf8_percent_encode};
+use percent_encoding::utf8_percent_encode;
 pub use percent_encoding::NON_ALPHANUMERIC;
 use url::Url;
 
@@ -251,7 +251,8 @@ mod tests {
 
     #[test]
     fn normalize_user_input_uses_google_for_queries() {
-        let out = normalize_user_input_url("rust browser project", "https://www.google.com/search?q={}");
+        let out =
+            normalize_user_input_url("rust browser project", "https://www.google.com/search?q={}");
         assert!(out.starts_with("https://www.google.com/search?"));
         assert!(out.contains("q=rust%20browser%20project"));
     }

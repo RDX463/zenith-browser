@@ -1,19 +1,25 @@
-use std::borrow::Cow;
-use wry::http::{Request, Response, header};
 use crate::assets::Assets;
+use std::borrow::Cow;
+use wry::http::{header, Request, Response};
 
-pub fn handle_zenith_request(_ui_html: &str, request: Request<Vec<u8>>) -> Response<Cow<'static, [u8]>> {
+pub fn handle_zenith_request(
+    _ui_html: &str,
+    request: Request<Vec<u8>>,
+) -> Response<Cow<'static, [u8]>> {
     let uri = request.uri();
     let host = uri.host().unwrap_or_default();
     let original_path = uri.path();
 
     if host != "assets" {
-        return Response::builder().status(404).body(Cow::Borrowed(&[][..])).unwrap();
+        return Response::builder()
+            .status(404)
+            .body(Cow::Borrowed(&[][..]))
+            .unwrap();
     }
 
     // Modern SPA Routing: ONLY serve it for the chrome UI path
     let is_ui_request = original_path.starts_with("/ui");
-    
+
     let path = if is_ui_request {
         "index.html".to_string()
     } else {
@@ -50,5 +56,6 @@ pub fn handle_zenith_request(_ui_html: &str, request: Request<Vec<u8>>) -> Respo
 
     Response::builder()
         .status(404)
-        .body(Cow::Borrowed(&[][..])).unwrap()
+        .body(Cow::Borrowed(&[][..]))
+        .unwrap()
 }

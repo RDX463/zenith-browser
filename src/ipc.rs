@@ -83,7 +83,10 @@ pub enum UserEvent {
         path: Option<String>,
         success: bool,
     },
-    ShowThreeDotsMenu { x: f64, y: f64 },
+    ShowThreeDotsMenu {
+        x: f64,
+        y: f64,
+    },
     FindInPage {
         query: String,
         forward: bool,
@@ -119,7 +122,10 @@ pub enum UserEvent {
     GetSuggestions(String),
     SuggestionResults(Vec<Suggestion>),
     ChromeStateResult(String),
-    TabDataResult { index: usize, payload: String },
+    TabDataResult {
+        index: usize,
+        payload: String,
+    },
 }
 
 #[derive(Debug, Deserialize)]
@@ -238,7 +244,9 @@ pub fn dispatch_ipc_message(
             }
         }
         "permission_request" => {
-            if let (Some(id), Some(url), Some(permission), Some(request_id)) = (tab_id, message.url, message.permission, message.request_id) {
+            if let (Some(id), Some(url), Some(permission), Some(request_id)) =
+                (tab_id, message.url, message.permission, message.request_id)
+            {
                 let _ = proxy.send_event(UserEvent::PermissionRequest {
                     tab_id: id,
                     url,
@@ -248,7 +256,12 @@ pub fn dispatch_ipc_message(
             }
         }
         "permission_decision" => {
-            if let (Some(id), Some(_permission), Some(decision), Some(request_id)) = (message.tab_id, message.permission, message.decision, message.request_id) {
+            if let (Some(id), Some(_permission), Some(decision), Some(request_id)) = (
+                message.tab_id,
+                message.permission,
+                message.decision,
+                message.request_id,
+            ) {
                 let _ = proxy.send_event(UserEvent::PermissionDecision {
                     tab_id: id,
                     decision,
@@ -307,7 +320,12 @@ pub fn dispatch_ipc_message(
             if let (Some(url), Some(filename)) = (message.url.clone(), message.filename.clone()) {
                 let x = message.x.unwrap_or(0.0);
                 let y = message.y.unwrap_or(0.0);
-                let _ = proxy.send_event(UserEvent::ImageContextMenu { url, filename, x, y });
+                let _ = proxy.send_event(UserEvent::ImageContextMenu {
+                    url,
+                    filename,
+                    x,
+                    y,
+                });
             }
         }
         _ => {}

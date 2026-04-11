@@ -1,7 +1,7 @@
+use crate::config::{load_bookmarks, load_recent_sites, BookmarkSite, RecentSite};
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 use std::path::Path;
 use std::str::FromStr;
-use crate::config::{load_recent_sites, load_bookmarks, RecentSite, BookmarkSite};
 
 pub struct Database {
     pub pool: SqlitePool,
@@ -30,8 +30,10 @@ impl Database {
                 url TEXT NOT NULL UNIQUE,
                 title TEXT NOT NULL,
                 visited_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )"
-        ).execute(&self.pool).await?;
+            )",
+        )
+        .execute(&self.pool)
+        .await?;
 
         // Create Bookmarks Table
         sqlx::query(
@@ -40,8 +42,10 @@ impl Database {
                 url TEXT NOT NULL UNIQUE,
                 title TEXT NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )"
-        ).execute(&self.pool).await?;
+            )",
+        )
+        .execute(&self.pool)
+        .await?;
 
         // Create Downloads Table
         sqlx::query(
@@ -51,19 +55,27 @@ impl Database {
                 path TEXT NOT NULL,
                 status TEXT NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )"
-        ).execute(&self.pool).await?;
+            )",
+        )
+        .execute(&self.pool)
+        .await?;
 
         // Add index for fast searching
-        sqlx::query("CREATE INDEX IF NOT EXISTS idx_history_url ON history(url)").execute(&self.pool).await?;
-        sqlx::query("CREATE INDEX IF NOT EXISTS idx_bookmarks_url ON bookmarks(url)").execute(&self.pool).await?;
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_history_url ON history(url)")
+            .execute(&self.pool)
+            .await?;
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_bookmarks_url ON bookmarks(url)")
+            .execute(&self.pool)
+            .await?;
 
         Ok(())
     }
 
     pub async fn migrate_from_json(&self) -> Result<(), sqlx::Error> {
         // Only migrate if tables are empty
-        let history_count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM history").fetch_one(&self.pool).await?;
+        let history_count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM history")
+            .fetch_one(&self.pool)
+            .await?;
         if history_count.0 == 0 {
             let recent = load_recent_sites();
             for site in recent {
@@ -71,7 +83,9 @@ impl Database {
             }
         }
 
-        let bookmark_count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM bookmarks").fetch_one(&self.pool).await?;
+        let bookmark_count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM bookmarks")
+            .fetch_one(&self.pool)
+            .await?;
         if bookmark_count.0 == 0 {
             let bookmarks = load_bookmarks();
             for b in bookmarks {
@@ -94,13 +108,11 @@ impl Database {
     }
 
     pub async fn add_bookmark(&self, url: &str, title: &str) -> Result<(), sqlx::Error> {
-        sqlx::query(
-            "INSERT OR IGNORE INTO bookmarks (url, title) VALUES (?, ?)"
-        )
-        .bind(url)
-        .bind(title)
-        .execute(&self.pool)
-        .await?;
+        sqlx::query("INSERT OR IGNORE INTO bookmarks (url, title) VALUES (?, ?)")
+            .bind(url)
+            .bind(title)
+            .execute(&self.pool)
+            .await?;
         Ok(())
     }
 
@@ -114,7 +126,7 @@ impl Database {
 
     pub async fn get_bookmarks(&self) -> Result<Vec<BookmarkSite>, sqlx::Error> {
         sqlx::query_as::<_, BookmarkSite>(
-            "SELECT url, title FROM bookmarks ORDER BY created_at DESC"
+            "SELECT url, title FROM bookmarks ORDER BY created_at DESC",
         )
         .fetch_all(&self.pool)
         .await
@@ -122,20 +134,23 @@ impl Database {
 
     pub async fn get_recent_history(&self, limit: i64) -> Result<Vec<RecentSite>, sqlx::Error> {
         sqlx::query_as::<_, RecentSite>(
-            "SELECT url, title FROM history ORDER BY visited_at DESC LIMIT ?"
+            "SELECT url, title FROM history ORDER BY visited_at DESC LIMIT ?",
         )
         .bind(limit)
         .fetch_all(&self.pool)
         .await
     }
 
-    pub async fn search_suggestions(&self, query: &str) -> Result<Vec<crate::ipc::Suggestion>, sqlx::Error> {
+    pub async fn search_suggestions(
+        &self,
+        query: &str,
+    ) -> Result<Vec<crate::ipc::Suggestion>, sqlx::Error> {
         let pattern = format!("%{}%", query);
         let mut results = Vec::new();
 
         // Search Bookmarks
         let bookmarks = sqlx::query_as::<_, BookmarkSite>(
-            "SELECT url, title FROM bookmarks WHERE url LIKE ? OR title LIKE ? LIMIT 5"
+            "SELECT url, title FROM bookmarks WHERE url LIKE ? OR title LIKE ? LIMIT 5",
         )
         .bind(&pattern)
         .bind(&pattern)
@@ -153,7 +168,7 @@ impl Database {
 
         // Search History
         let history = sqlx::query_as::<_, RecentSite>(
-            "SELECT url, title FROM history WHERE url LIKE ? OR title LIKE ? LIMIT 10"
+            "SELECT url, title FROM history WHERE url LIKE ? OR title LIKE ? LIMIT 10",
         )
         .bind(&pattern)
         .bind(&pattern)
@@ -174,15 +189,18 @@ impl Database {
         Ok(results)
     }
 
-    pub async fn add_download(&self, url: &str, path: &str, status: &str) -> Result<(), sqlx::Error> {
-        sqlx::query(
-            "INSERT OR REPLACE INTO downloads (url, path, status) VALUES (?, ?, ?)"
-        )
-        .bind(url)
-        .bind(path)
-        .bind(status)
-        .execute(&self.pool)
-        .await?;
+    pub async fn add_download(
+        &self,
+        url: &str,
+        path: &str,
+        status: &str,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query("INSERT OR REPLACE INTO downloads (url, path, status) VALUES (?, ?, ?)")
+            .bind(url)
+            .bind(path)
+            .bind(status)
+            .execute(&self.pool)
+            .await?;
         Ok(())
     }
 
@@ -197,19 +215,23 @@ impl Database {
 
     pub async fn get_downloads(&self) -> Result<Vec<crate::config::DownloadEntry>, sqlx::Error> {
         sqlx::query_as::<_, crate::config::DownloadEntry>(
-            "SELECT url, path, status FROM downloads ORDER BY created_at DESC"
+            "SELECT url, path, status FROM downloads ORDER BY created_at DESC",
         )
         .fetch_all(&self.pool)
         .await
     }
 
     pub async fn clear_history(&self) -> Result<(), sqlx::Error> {
-        sqlx::query("DELETE FROM history").execute(&self.pool).await?;
+        sqlx::query("DELETE FROM history")
+            .execute(&self.pool)
+            .await?;
         Ok(())
     }
 
     pub async fn clear_downloads(&self) -> Result<(), sqlx::Error> {
-        sqlx::query("DELETE FROM downloads").execute(&self.pool).await?;
+        sqlx::query("DELETE FROM downloads")
+            .execute(&self.pool)
+            .await?;
         Ok(())
     }
 }

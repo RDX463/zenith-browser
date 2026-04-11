@@ -1,30 +1,37 @@
 // let_chains is stable in Rust 1.88.0+
 
 mod app;
+mod assets;
 mod config;
 mod db;
-mod assets;
 mod ipc;
 mod menu;
 mod tab;
 mod ui_handler;
 mod utils;
 
+use app::BrowserApp;
+use ipc::{BrowserAction, UserEvent};
+use muda::ContextMenu;
+use tao::dpi::LogicalSize;
 use tao::event::{Event, WindowEvent};
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
-use tao::dpi::LogicalSize;
-use app::BrowserApp;
-use ipc::{UserEvent, BrowserAction};
-use utils::{should_track_recent_site, fallback_title_for_url, resolved_tab_title, should_warmup_youtube_account_sync};
-use muda::ContextMenu;
+use utils::{
+    fallback_title_for_url, resolved_tab_title, should_track_recent_site,
+    should_warmup_youtube_account_sync,
+};
 
 #[tokio::main]
 async fn main() {
     let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
     let proxy = event_loop.create_proxy();
-    
+
     let profile_dir = config::profile_directory();
-    let db = std::sync::Arc::new(db::Database::new(&profile_dir).await.expect("Failed to init database"));
+    let db = std::sync::Arc::new(
+        db::Database::new(&profile_dir)
+            .await
+            .expect("Failed to init database"),
+    );
     if let Err(e) = db.migrate_from_json().await {
         eprintln!("[DB] Migration failed: {e}");
     }
