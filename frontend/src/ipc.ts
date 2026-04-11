@@ -63,8 +63,9 @@ class ZenithIpc {
   }
 
   send(msg: IpcMessage) {
-    if ((window as ZenithWindow).ipc?.postMessage) {
-      (window as ZenithWindow).ipc.postMessage(JSON.stringify(msg));
+    const ipc = (window as ZenithWindow).ipc;
+    if (ipc?.postMessage) {
+      ipc.postMessage(JSON.stringify(msg));
     } else {
       console.warn('[IPC] Offline:', msg);
     }

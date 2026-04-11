@@ -8,12 +8,10 @@ afterEach(() => {
 })
 
 // Mock IPC for testing
-global.window = {
-  ...global.window,
-  ipc: {
-    postMessage: vi.fn(),
-    onState: vi.fn(() => () => {}),
-    onSuggestions: vi.fn(() => () => {}),
-    send: vi.fn(),
-  },
-}
+const mockWindow = global.window as any;
+mockWindow.ipc = {
+  postMessage: vi.fn(),
+  onState: vi.fn(() => () => {}),
+  onSuggestions: vi.fn(() => () => {}),
+  send: vi.fn(),
+};

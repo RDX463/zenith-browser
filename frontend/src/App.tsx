@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ipc } from './ipc';
 import type { ChromeState, Suggestion } from './ipc';
 import TabBar from './components/TabBar';
