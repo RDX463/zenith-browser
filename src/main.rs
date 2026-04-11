@@ -332,7 +332,7 @@ async fn main() {
                 let dl_dir = dirs::download_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
                 let save_path = dl_dir.join(&filename);
                 let path_str = save_path.display().to_string();
-                
+
                 let db_c = app.db.clone();
                 let url_c1 = url.clone();
                 let path_str_c1 = path_str.clone();
