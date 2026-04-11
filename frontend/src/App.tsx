@@ -9,7 +9,10 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 export default function App() {
   const [state, setState] = useState<ChromeState>({ tabs: [], activeId: null });
-  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [isPaletteOpen, setIsPaletteOpen] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('mode') === 'palette';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -18,12 +21,6 @@ export default function App() {
     const unbindState = ipc.onState(setState);
     const unbindSuggestions = ipc.onSuggestions(setSuggestions);
     
-    // Check if we are in palette mode via URL
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('mode') === 'palette') {
-      setIsPaletteOpen(true);
-    }
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (suggestions.length > 0) {
         if (e.key === 'ArrowDown') {

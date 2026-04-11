@@ -2,6 +2,14 @@
  * Type-safe IPC bridge for Zenith Browser
  */
 
+interface ZenithWindow extends Window {
+  zenithSetState?: (state: ChromeState) => void;
+  zenithSetSuggestions?: (results: Suggestion[]) => void;
+  ipc?: {
+    postMessage: (message: string) => void;
+  };
+}
+
 export interface Suggestion {
   title: string;
   url?: string;
@@ -44,19 +52,19 @@ class ZenithIpc {
 
   constructor() {
     // Listen for state updates from Rust
-    (window as any).zenithSetState = (state: ChromeState) => {
+    (window as ZenithWindow).zenithSetState = (state: ChromeState) => {
       this.listeners.forEach(l => l(state));
     };
 
     // Listen for suggestion results
-    (window as any).zenithSetSuggestions = (results: Suggestion[]) => {
+    (window as ZenithWindow).zenithSetSuggestions = (results: Suggestion[]) => {
       this.suggestionListeners.forEach(l => l(results));
     };
   }
 
   send(msg: IpcMessage) {
-    if ((window as any).ipc?.postMessage) {
-      (window as any).ipc.postMessage(JSON.stringify(msg));
+    if ((window as ZenithWindow).ipc?.postMessage) {
+      (window as ZenithWindow).ipc.postMessage(JSON.stringify(msg));
     } else {
       console.warn('[IPC] Offline:', msg);
     }
