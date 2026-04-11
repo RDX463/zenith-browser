@@ -12,7 +12,6 @@ mod utils;
 
 use app::BrowserApp;
 use ipc::{BrowserAction, UserEvent};
-use muda::ContextMenu;
 use tao::dpi::LogicalSize;
 use tao::event::{Event, WindowEvent};
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
@@ -302,6 +301,8 @@ async fn main() {
                     use tao::platform::macos::WindowExtMacOS;
                     app.menu.dots_menu.show_context_menu_for_nsview(app.window.ns_view() as _, Some(tao::dpi::Position::Logical(tao::dpi::LogicalPosition::new(x, y))));
                 }
+                #[cfg(not(target_os = "macos"))]
+                let _ = (x, y); // Suppress unused variable warnings
             }
             Event::UserEvent(UserEvent::FindInPage { query, forward }) => {
                 if let Some(tab_id) = app.active_tab_id {
@@ -327,6 +328,9 @@ async fn main() {
                     use tao::platform::macos::WindowExtMacOS;
                     app.menu.img_menu.show_context_menu_for_nsview(app.window.ns_view() as _, Some(tao::dpi::Position::Logical(tao::dpi::LogicalPosition::new(x, y))));
                 }
+                #[cfg(not(target_os = "macos"))]
+                let _ = (x, y); // Suppress unused variable warnings
+            }
             }
             Event::UserEvent(UserEvent::SaveImage { url, filename }) => {
                 let dl_dir = dirs::download_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
