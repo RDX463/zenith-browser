@@ -54,6 +54,20 @@ export default function App() {
     };
   }, [suggestions, selectedIndex, state.activeId]);
 
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSuggestions([]);
+      setSelectedIndex(-1);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      ipc.send({ type: 'get_suggestions', query: searchQuery });
+    }, 120);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const activeTab = state.tabs.find(t => t.id === state.activeId);
 
   return (
