@@ -333,38 +333,38 @@ async fn main() {
                 let _ = (x, y); // Suppress unused variable warnings
             }
             Event::UserEvent(UserEvent::SaveImage { url, filename }) => {
-                let dl_dir = dirs::download_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
-                let save_path = dl_dir.join(&filename);
-                let path_str = save_path.display().to_string();
-
-                let db_c = app.db.clone();
-                let url_c1 = url.clone();
-                let path_str_c1 = path_str.clone();
-                tokio::spawn(async move {
-                    let _ = db_c.add_download(&url_c1, &path_str_c1, "in_progress").await;
-                });
-
-                app.sync_all_tabs_data(&proxy);
-                app.show_toast(&format!("Downloading {}", filename), "info");
-                let proxy_clone = proxy.clone();
-                let url_clone = url.clone();
-                let path_str_clone = path_str.clone();
-                let _filename_clone = filename.clone();
-                std::thread::spawn(move || {
-                    let client = reqwest::blocking::Client::new();
-                    match client.get(&url_clone).send().and_then(|r| r.bytes()) {
-                        Ok(bytes) => {
-                            if std::fs::write(&save_path, &bytes).is_ok() {
-                                let _ = proxy_clone.send_event(UserEvent::DownloadCompleted { url: url_clone, path: Some(path_str_clone), success: true });
-                            } else {
-                                let _ = proxy_clone.send_event(UserEvent::DownloadCompleted { url: url_clone, path: Some(path_str_clone), success: false });
-                            }
-                        }
-                        Err(_) => {
-                            let _ = proxy_clone.send_event(UserEvent::DownloadCompleted { url: url_clone, path: None, success: false });
-                        }
+                if let Some(tab_id) = app.active_tab_id {
+                    if let Some(tab) = app.tabs.iter().find(|t| t.id == tab_id) {
+                        let escaped_url = serde_json::to_string(&url).unwrap();
+                        let escaped_filename = serde_json::to_string(&filename).unwrap();
+                        let js = format!(
+                            r#"(function() {{
+                                fetch({}, {{ cache: 'force-cache' }})
+                                    .then(r => r.blob())
+                                    .then(blob => {{
+                                        const blobUrl = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = blobUrl;
+                                        a.download = {};
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        document.body.removeChild(a);
+                                        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+                                    }})
+                                    .catch(e => {{
+                                        console.error('Save failed', e);
+                                        // Fallback: simple click if fetch fails (CORS)
+                                        const a = document.createElement('a');
+                                        a.href = {};
+                                        a.download = {};
+                                        a.click();
+                                    }});
+                            }})();"#,
+                            escaped_url, escaped_filename, escaped_url, escaped_filename
+                        );
+                        let _ = tab.webview.evaluate_script(&js);
                     }
-                });
+                }
             }
             Event::UserEvent(UserEvent::PermissionRequest { tab_id, url, permission, request_id }) => {
                 let js = format!("if (window.showPermissionPrompt) window.showPermissionPrompt({}, {}, '{}', '{}');", 
