@@ -297,7 +297,11 @@ impl BrowserApp {
 
     pub fn apply_tab_visibility(&self) {
         for tab in &self.tabs {
-            let _ = tab.webview.set_visible(Some(tab.id) == self.active_tab_id);
+            let is_active = Some(tab.id) == self.active_tab_id;
+            let _ = tab.webview.set_visible(is_active);
+            if is_active {
+                let _ = tab.webview.focus();
+            }
         }
         self.elevate_ui_layers();
     }
