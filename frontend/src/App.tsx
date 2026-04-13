@@ -6,7 +6,7 @@ import Toolbar from './components/Toolbar';
 import SuggestionsDropdown from './components/SuggestionsDropdown';
 import PaletteSearch from './components/PaletteSearch';
 import ErrorBoundary from './components/ErrorBoundary';
-import { cn } from './utils';
+import { cn } from './lib/utils';
 
 export default function App() {
   const [state, setState] = useState<ChromeState>({ tabs: [], activeId: null });
